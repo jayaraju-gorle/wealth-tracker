@@ -21,7 +21,7 @@ export const Projections: React.FC<Props> = ({ data }) => {
   const chartData = useMemo(() => {
     const points = data.snapshots.map(s => ({
       date: s.date,
-      history: s.netWorth,
+      history: s.netWorth as number | null,
       projected: null as number | null,
       isProjected: false
     }));

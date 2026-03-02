@@ -7,13 +7,18 @@ const STORAGE_KEY = 'family_wealth_tracker_v1';
 // Helper to ensure we don't have undefined arrays
 const sanitizeState = (data: any): AppState => {
   if (!data) return INITIAL_STATE;
+  // Ensure milestones have trackingMode (backward compatibility)
+  const milestones = (data.milestones || INITIAL_STATE.milestones).map((m: any) => ({
+    ...m,
+    trackingMode: m.trackingMode || 'net_worth',
+  }));
   return {
     ...INITIAL_STATE,
     ...data,
     assets: data.assets || [],
     liabilities: data.liabilities || [],
     snapshots: data.snapshots || [],
-    milestones: data.milestones || INITIAL_STATE.milestones,
+    milestones,
     lastUpdated: data.lastUpdated || 0
   };
 };
@@ -32,7 +37,7 @@ export const useStore = () => {
 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [isSynced, setIsSynced] = useState(false);
-  
+
   // Refs
   const stateRef = useRef(state);
   const syncTimeoutRef = useRef<any>(null);
@@ -49,17 +54,17 @@ export const useStore = () => {
       if (state.familyId) {
         // Ensure Firebase is ready
         if (!FirebaseService.isFirebaseInitialized()) {
-           FirebaseService.initFirebase();
-           try { await FirebaseService.authenticateAnonymously(); } catch(e) { console.warn("Auto-auth failed", e); }
+          FirebaseService.initFirebase();
+          try { await FirebaseService.authenticateAnonymously(); } catch (e) { console.warn("Auto-auth failed", e); }
         }
 
         if (FirebaseService.isFirebaseInitialized()) {
           setIsSynced(true);
           console.log(`[Sync] Subscribing to ${state.familyId}`);
-          
+
           const unsub = FirebaseService.subscribeToFamilyData(state.familyId, (remoteData) => {
             const currentState = stateRef.current;
-            
+
             if (!remoteData) return;
 
             const isFreshJoin = currentState.lastUpdated === 0;
@@ -68,7 +73,7 @@ export const useStore = () => {
             if (isFreshJoin || isRemoteNewer) {
               console.log(`[Sync] Incoming Data. Fresh: ${isFreshJoin}, Newer: ${isRemoteNewer}`);
               setState(prev => {
-                  return sanitizeState(remoteData);
+                return sanitizeState(remoteData);
               });
               setSyncStatus('saved');
             }
@@ -89,7 +94,7 @@ export const useStore = () => {
   const updateState = useCallback((updates: Partial<AppState>) => {
     setState(prev => {
       const isFamilyIdChange = updates.familyId !== undefined && updates.familyId !== prev.familyId;
-      
+
       let newState = { ...prev, ...updates };
 
       // Handle Timestamp Logic
@@ -99,40 +104,40 @@ export const useStore = () => {
       } else {
         newState.lastUpdated = Date.now();
       }
-      
+
       // SYNC TRIGGER
       if (newState.familyId && newState.lastUpdated > 0 && FirebaseService.isFirebaseInitialized()) {
         setSyncStatus('syncing');
-        
+
         // Clear existing debounce timer
         if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-        
+
         // Debounce sync
         syncTimeoutRef.current = setTimeout(() => {
-            // Optimistic UI: We assume it saves successfully.
-            // We use a race condition: If Firebase ACK takes too long, we show Saved anyway (offline support).
-            
-            const syncPromise = FirebaseService.syncFamilyData(newState.familyId!, newState);
-            const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000)); // 2s max wait for UI
+          // Optimistic UI: We assume it saves successfully.
+          // We use a race condition: If Firebase ACK takes too long, we show Saved anyway (offline support).
 
-            Promise.race([syncPromise, timeoutPromise])
-              .then(() => {
-                 setSyncStatus('saved');
-              })
-              .catch((err) => {
-                 console.error("Sync failed", err);
-                 setSyncStatus('error');
-              });
+          const syncPromise = FirebaseService.syncFamilyData(newState.familyId!, newState);
+          const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000)); // 2s max wait for UI
 
-            // Ensure the actual sync completes in background even if UI moved on
-            syncPromise.catch(e => {
-               console.error("Background sync error", e);
-               setSyncStatus('error'); 
+          Promise.race([syncPromise, timeoutPromise])
+            .then(() => {
+              setSyncStatus('saved');
+            })
+            .catch((err) => {
+              console.error("Sync failed", err);
+              setSyncStatus('error');
             });
 
-        }, 1000); 
+          // Ensure the actual sync completes in background even if UI moved on
+          syncPromise.catch(e => {
+            console.error("Background sync error", e);
+            setSyncStatus('error');
+          });
+
+        }, 1000);
       }
-      
+
       return newState;
     });
   }, []);
@@ -140,8 +145,8 @@ export const useStore = () => {
   // Force Pull
   const forcePull = useCallback(() => {
     if (state.familyId) {
-       console.log("[Sync] Force Pull Initiated");
-       setState(prev => ({ ...prev, lastUpdated: 0 }));
+      console.log("[Sync] Force Pull Initiated");
+      setState(prev => ({ ...prev, lastUpdated: 0 }));
     }
   }, [state.familyId]);
 
