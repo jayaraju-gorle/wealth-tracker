@@ -7,10 +7,17 @@ import { HistoryMachine } from './components/HistoryMachine';
 import { Projections } from './components/Projections';
 import { Milestones } from './components/Milestones';
 import { SyncManager } from './components/SyncManager';
+import { Toast } from './components/ui/Toast';
 import { formatCurrency, formatCompact } from './utils';
 
 const App: React.FC = () => {
-  const { state, updateState, isSynced, syncStatus, forcePull } = useStore();
+  const { state, updateState, isSynced, syncStatus, forcePull, autoSnapshotTaken } = useStore();
+  const [showToast, setShowToast] = useState(false);
+
+  // Show toast when auto-snapshot fires
+  React.useEffect(() => {
+    if (autoSnapshotTaken) setShowToast(true);
+  }, [autoSnapshotTaken]);
   const [activeView, setActiveView] = useState<'dashboard' | 'assets' | 'history'>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -246,8 +253,8 @@ const App: React.FC = () => {
                 key={view}
                 onClick={() => setActiveView(view)}
                 className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${activeView === view
-                    ? 'text-indigo-400'
-                    : 'text-slate-500 hover:text-slate-300'
+                  ? 'text-indigo-400'
+                  : 'text-slate-500 hover:text-slate-300'
                   }`}
               >
                 <div className={`p-1.5 rounded-lg transition-all ${activeView === view ? 'bg-indigo-500/20' : ''}`}>
@@ -259,6 +266,16 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Auto-Snapshot Toast */}
+      {showToast && (
+        <Toast
+          message="📸 Today's net worth snapshot saved"
+          icon="snapshot"
+          duration={5000}
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </HashRouter>
   );
 };

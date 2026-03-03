@@ -150,5 +150,48 @@ export const useStore = () => {
     }
   }, [state.familyId]);
 
-  return { state, updateState, isSynced, syncStatus, forcePull };
+  // Auto-Snapshot: log once per day on visit (only if there's data worth snapshotting)
+  const [autoSnapshotTaken, setAutoSnapshotTaken] = useState(false);
+  const autoSnapshotDone = useRef(false);
+
+  useEffect(() => {
+    if (autoSnapshotDone.current) return;
+    autoSnapshotDone.current = true;
+
+    const currentState = stateRef.current;
+
+    // Only auto-snapshot if user has added at least one asset
+    if (currentState.assets.length === 0) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const alreadyLogged = currentState.snapshots.some(s => s.date === today);
+    if (alreadyLogged) return;
+
+    const netWorth = currentState.assets.reduce((a, b) => a + b.value, 0)
+      - currentState.liabilities.reduce((a, b) => a + b.value, 0);
+
+    const snapshot = {
+      id: crypto.randomUUID(),
+      date: today,
+      netWorth,
+      isManual: false,
+      note: 'Auto-captured on visit'
+    };
+
+    const updatedSnapshots = [...currentState.snapshots, snapshot]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Use a small delay so the UI has time to render first
+    setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        snapshots: updatedSnapshots,
+        lastUpdated: Date.now()
+      }));
+      setAutoSnapshotTaken(true);
+      console.log(`[Auto-Snapshot] Logged net worth: ${netWorth} for ${today}`);
+    }, 1500);
+  }, []);
+
+  return { state, updateState, isSynced, syncStatus, forcePull, autoSnapshotTaken };
 };
