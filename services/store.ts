@@ -4,6 +4,20 @@ import * as FirebaseService from './firebase';
 
 const STORAGE_KEY = 'family_wealth_tracker_v1';
 
+// Recursively strip undefined values (Firebase rejects them)
+const deepCleanUndefined = (obj: any): any => {
+  if (obj === null || obj === undefined) return null;
+  if (Array.isArray(obj)) return obj.map(deepCleanUndefined);
+  if (typeof obj === 'object') {
+    const clean: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined) clean[k] = deepCleanUndefined(v);
+    }
+    return clean;
+  }
+  return obj;
+};
+
 // Helper to ensure we don't have undefined arrays
 const sanitizeState = (data: any): AppState => {
   if (!data) return INITIAL_STATE;
@@ -12,10 +26,15 @@ const sanitizeState = (data: any): AppState => {
     ...m,
     trackingMode: m.trackingMode || 'net_worth',
   }));
+  // Ensure assets have valuationMode (backward compatibility)
+  const assets = (data.assets || []).map((a: any) => ({
+    ...a,
+    valuationMode: a.valuationMode || 'manual',
+  }));
   return {
     ...INITIAL_STATE,
     ...data,
-    assets: data.assets || [],
+    assets,
     liabilities: data.liabilities || [],
     snapshots: data.snapshots || [],
     milestones,
@@ -117,7 +136,7 @@ export const useStore = () => {
           // Optimistic UI: We assume it saves successfully.
           // We use a race condition: If Firebase ACK takes too long, we show Saved anyway (offline support).
 
-          const syncPromise = FirebaseService.syncFamilyData(newState.familyId!, newState);
+          const syncPromise = FirebaseService.syncFamilyData(newState.familyId!, deepCleanUndefined(newState));
           const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000)); // 2s max wait for UI
 
           Promise.race([syncPromise, timeoutPromise])

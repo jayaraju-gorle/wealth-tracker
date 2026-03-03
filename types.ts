@@ -11,6 +11,13 @@ export interface Asset {
   value: number;
   type: AssetType;
   growthRate: number; // Annual percentage expected
+  // Smart pricing (optional)
+  schemeCode?: number;        // MF: AMFI scheme code
+  units?: number;             // MF: units held
+  navPerUnit?: number;        // MF: last fetched NAV
+  quantity?: number;          // Stock / Gold / Silver: quantity or grams
+  pricePerUnit?: number;      // Stock / Gold / Silver: price per share/gram
+  valuationMode?: 'manual' | 'smart';
 }
 
 export interface Liability {
