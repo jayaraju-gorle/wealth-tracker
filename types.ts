@@ -18,6 +18,10 @@ export interface Asset {
   quantity?: number;          // Stock / Gold / Silver: quantity or grams
   pricePerUnit?: number;      // Stock / Gold / Silver: price per share/gram
   valuationMode?: 'manual' | 'smart';
+  // SIP tracking (optional, MF only)
+  sipAmount?: number;         // Monthly SIP amount in ₹
+  sipDay?: number;            // Day of month (1-28, default 5)
+  lastSipLogDate?: string;    // ISO date of last logged SIP
 }
 
 export interface Liability {

@@ -247,40 +247,141 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
           </div>
         )}
 
-        {/* MF: Search + Units */}
+        {/* MF: Search + Units + SIP */}
         {isSmart && asset.type === 'MUTUAL_FUND' && (
-          <div className="sm:col-span-12 grid grid-cols-1 sm:grid-cols-12 gap-4 mt-2">
-            <div className="sm:col-span-6">
-              <label className="text-xs text-slate-400 block mb-1">Search & Link Fund</label>
-              <MFSearchInput asset={asset} onSelect={(r) => handleMFSelect(asset.id, r)} />
-              {asset.schemeCode && (
-                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-500">
-                  <span>Code: {asset.schemeCode}</span>
-                  {asset.navPerUnit && (
-                    <>
-                      <span>·</span>
-                      <span>NAV: ₹{asset.navPerUnit.toFixed(2)}</span>
-                      <NavRefreshButton schemeCode={asset.schemeCode} onRefresh={(nav) => handleNavRefresh(asset.id, nav)} />
-                    </>
-                  )}
+          <div className="sm:col-span-12">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mt-2">
+              <div className="sm:col-span-6">
+                <label className="text-xs text-slate-400 block mb-1">Search & Link Fund</label>
+                <MFSearchInput asset={asset} onSelect={(r) => handleMFSelect(asset.id, r)} />
+                {asset.schemeCode && (
+                  <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-500">
+                    <span>Code: {asset.schemeCode}</span>
+                    {asset.navPerUnit && (
+                      <>
+                        <span>·</span>
+                        <span>NAV: ₹{asset.navPerUnit.toFixed(2)}</span>
+                        <NavRefreshButton schemeCode={asset.schemeCode} onRefresh={(nav) => handleNavRefresh(asset.id, nav)} />
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="sm:col-span-3">
+                <label className="text-xs text-slate-400 block mb-1">Units Held</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  value={asset.units || ''}
+                  onChange={(e) => updateAsset(asset.id, { units: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g. 245.678"
+                  className="w-full bg-transparent text-white border-b border-slate-600 focus:border-indigo-400 outline-none pb-1"
+                />
+              </div>
+              <div className="sm:col-span-3">
+                <label className="text-xs text-slate-400 block mb-1">Computed Value</label>
+                <div className="text-emerald-400 font-bold font-mono pb-1">
+                  {formatCurrency(asset.value)}
                 </div>
-              )}
+              </div>
             </div>
-            <div className="sm:col-span-3">
-              <label className="text-xs text-slate-400 block mb-1">Units Held</label>
-              <input
-                type="number"
-                step="0.001"
-                value={asset.units || ''}
-                onChange={(e) => updateAsset(asset.id, { units: parseFloat(e.target.value) || 0 })}
-                placeholder="e.g. 245.678"
-                className="w-full bg-transparent text-white border-b border-slate-600 focus:border-indigo-400 outline-none pb-1"
-              />
-            </div>
-            <div className="sm:col-span-3">
-              <label className="text-xs text-slate-400 block mb-1">Computed Value</label>
-              <div className="text-emerald-400 font-bold font-mono pb-1">
-                {formatCurrency(asset.value)}
+
+            {/* SIP Tracking */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mt-3 pt-3 border-t border-white/5">
+              <div className="sm:col-span-4">
+                <label className="text-xs text-slate-400 block mb-1">Monthly SIP (₹)</label>
+                <input
+                  type="number"
+                  value={asset.sipAmount || ''}
+                  onChange={(e) => updateAsset(asset.id, { sipAmount: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g. 5000"
+                  className="w-full bg-transparent text-white border-b border-slate-600 focus:border-violet-400 outline-none pb-1"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-xs text-slate-400 block mb-1">SIP Day</label>
+                <select
+                  value={asset.sipDay || 5}
+                  onChange={(e) => updateAsset(asset.id, { sipDay: parseInt(e.target.value) })}
+                  className="w-full bg-slate-800/50 text-white rounded px-2 py-1 text-sm border border-slate-600 outline-none"
+                >
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-6">
+                {(() => {
+                  if (!asset.sipAmount || asset.sipAmount <= 0 || !asset.navPerUnit) return null;
+
+                  const today = new Date();
+                  const sipDay = asset.sipDay || 5;
+                  const lastLog = asset.lastSipLogDate ? new Date(asset.lastSipLogDate) : null;
+                  const currentMonthSipDate = new Date(today.getFullYear(), today.getMonth(), sipDay);
+
+                  // Check if SIP is due: past sipDay this month AND not logged this month
+                  const isPastSipDay = today >= currentMonthSipDate;
+                  const isLoggedThisMonth = lastLog &&
+                    lastLog.getFullYear() === today.getFullYear() &&
+                    lastLog.getMonth() === today.getMonth();
+
+                  const sipDue = isPastSipDay && !isLoggedThisMonth;
+                  const newUnits = asset.sipAmount / asset.navPerUnit;
+
+                  if (isLoggedThisMonth) {
+                    return (
+                      <div className="text-xs text-emerald-400/70 flex items-center gap-1 pt-5">
+                        ✅ SIP logged: {lastLog!.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {' · '}+{((asset.sipAmount || 0) / (asset.navPerUnit || 1)).toFixed(3)} units
+                      </div>
+                    );
+                  }
+
+                  if (sipDue) {
+                    return (
+                      <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-2.5 mt-1">
+                        <div className="text-xs text-violet-200 mb-2">
+                          📅 SIP Due: ₹{asset.sipAmount.toLocaleString('en-IN')} → <span className="text-white font-bold">+{newUnits.toFixed(3)} units</span> at NAV ₹{asset.navPerUnit.toFixed(2)}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              const updatedUnits = (asset.units || 0) + newUnits;
+                              updateAsset(asset.id, {
+                                units: parseFloat(updatedUnits.toFixed(3)),
+                                lastSipLogDate: new Date().toISOString().slice(0, 10),
+                              });
+                            }}
+                            className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs rounded-lg hover:bg-emerald-500/30 transition-colors font-medium"
+                          >
+                            ✅ Log SIP
+                          </button>
+                          <button
+                            onClick={() => {
+                              updateAsset(asset.id, {
+                                lastSipLogDate: new Date().toISOString().slice(0, 10),
+                              });
+                            }}
+                            className="px-3 py-1 bg-white/5 text-slate-400 text-xs rounded-lg hover:bg-white/10 transition-colors"
+                          >
+                            ❌ Skip
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // SIP day not reached yet this month
+                  const daysUntil = Math.ceil((currentMonthSipDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  if (daysUntil > 0) {
+                    return (
+                      <div className="text-xs text-slate-500 flex items-center gap-1 pt-5">
+                        ⏳ Next SIP in {daysUntil} day{daysUntil > 1 ? 's' : ''} (₹{asset.sipAmount.toLocaleString('en-IN')})
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
           </div>
