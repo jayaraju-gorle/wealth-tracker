@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Plus, Trash2, TrendingUp, TrendingDown, PieChart as PieChartIcon, Search, RefreshCw, Loader2, Zap, ExternalLink, Eye, EyeOff, FileText, ChevronDown } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import { AppState, Asset, Liability, AssetType, LiabilityType, Attachment } from '../types';
+import { AppState, Asset, Liability, AssetType, LiabilityType, Attachment, LIQUID_ASSET_TYPES } from '../types';
 import { GlassCard } from './ui/GlassCard';
 import { formatCurrency } from '../utils';
 import { searchMutualFunds, getLatestNAV, MFSearchResult } from '../services/mfapi';
@@ -15,19 +15,19 @@ interface Props {
 const ASSET_COLORS: Record<string, string> = {
   CASH: '#10b981', SAVINGS_ACCOUNT: '#34d399', MUTUAL_FUND: '#6366f1', STOCK: '#f59e0b',
   REAL_ESTATE: '#ec4899', GOLD: '#eab308', SILVER: '#9ca3af', FD: '#06b6d4', EPF_PPF: '#8b5cf6', NPS: '#a78bfa',
-  INSURANCE: '#f472b6', BONDS: '#2dd4bf', CRYPTO: '#f97316', VEHICLE: '#94a3b8', OTHER: '#64748b',
+  INSURANCE: '#f472b6', BONDS: '#2dd4bf', CRYPTO: '#f97316', VEHICLE: '#94a3b8', ESOPS: '#c084fc', LENDING: '#fb7185', OTHER: '#64748b',
 };
 
 const ASSET_LABELS: Record<string, string> = {
   CASH: 'Cash', SAVINGS_ACCOUNT: 'Savings A/C', MUTUAL_FUND: 'Mutual Funds', STOCK: 'Stocks',
   REAL_ESTATE: 'Real Estate', GOLD: 'Gold', SILVER: 'Silver', FD: 'FD/RD', EPF_PPF: 'EPF/PPF', NPS: 'NPS',
-  INSURANCE: 'Insurance', BONDS: 'Bonds', CRYPTO: 'Crypto', VEHICLE: 'Vehicle', OTHER: 'Other',
+  INSURANCE: 'Insurance', BONDS: 'Bonds', CRYPTO: 'Crypto', VEHICLE: 'Vehicle', ESOPS: 'ESOPs', LENDING: 'Lending', OTHER: 'Other',
 };
 
 const ASSET_ICONS: Record<string, string> = {
   CASH: '💵', SAVINGS_ACCOUNT: '🏦', MUTUAL_FUND: '📊', STOCK: '📈', REAL_ESTATE: '🏠',
   GOLD: '🪙', SILVER: '🪨', FD: '🔒', EPF_PPF: '🏛️', NPS: '🎯', INSURANCE: '🛡️',
-  BONDS: '📜', CRYPTO: '₿', VEHICLE: '🚗', OTHER: '📦',
+  BONDS: '📜', CRYPTO: '₿', VEHICLE: '🚗', ESOPS: '💼', LENDING: '🤝', OTHER: '📦',
 };
 
 const LIABILITY_ICONS: Record<string, string> = {
@@ -634,21 +634,27 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                         }}
                         className={SELECT_CLASS}
                       >
-                        <option style={OPTION_STYLE} value="CASH">💵 Cash</option>
-                        <option style={OPTION_STYLE} value="SAVINGS_ACCOUNT">🏦 Savings A/C</option>
-                        <option style={OPTION_STYLE} value="MUTUAL_FUND">📊 Mutual Fund</option>
-                        <option style={OPTION_STYLE} value="STOCK">📈 Stocks</option>
-                        <option style={OPTION_STYLE} value="GOLD">🪙 Gold (SGB/Physical)</option>
-                        <option style={OPTION_STYLE} value="SILVER">🪨 Silver</option>
-                        <option style={OPTION_STYLE} value="FD">🔒 FD / RD</option>
-                        <option style={OPTION_STYLE} value="EPF_PPF">🏛️ EPF / PPF</option>
-                        <option style={OPTION_STYLE} value="NPS">🎯 NPS</option>
-                        <option style={OPTION_STYLE} value="INSURANCE">🛡️ Insurance / ULIP</option>
-                        <option style={OPTION_STYLE} value="BONDS">📜 Bonds / Debentures</option>
-                        <option style={OPTION_STYLE} value="REAL_ESTATE">🏠 Real Estate</option>
-                        <option style={OPTION_STYLE} value="CRYPTO">₿ Crypto</option>
-                        <option style={OPTION_STYLE} value="VEHICLE">🚗 Vehicle</option>
-                        <option style={OPTION_STYLE} value="OTHER">📦 Other</option>
+                        <optgroup label="💧 Liquid (counted for emergency fund)" style={OPTION_STYLE}>
+                          <option style={OPTION_STYLE} value="CASH">💵 Cash</option>
+                          <option style={OPTION_STYLE} value="SAVINGS_ACCOUNT">🏦 Savings A/C</option>
+                          <option style={OPTION_STYLE} value="MUTUAL_FUND">📊 Mutual Fund</option>
+                          <option style={OPTION_STYLE} value="STOCK">📈 Stocks</option>
+                          <option style={OPTION_STYLE} value="FD">🔒 FD / RD</option>
+                          <option style={OPTION_STYLE} value="BONDS">📜 Bonds / Debentures</option>
+                          <option style={OPTION_STYLE} value="CRYPTO">₿ Crypto</option>
+                        </optgroup>
+                        <optgroup label="🔒 Non-Liquid" style={OPTION_STYLE}>
+                          <option style={OPTION_STYLE} value="REAL_ESTATE">🏠 Real Estate</option>
+                          <option style={OPTION_STYLE} value="GOLD">🪙 Gold (SGB/Physical)</option>
+                          <option style={OPTION_STYLE} value="SILVER">🪨 Silver</option>
+                          <option style={OPTION_STYLE} value="EPF_PPF">🏛️ EPF / PPF</option>
+                          <option style={OPTION_STYLE} value="NPS">🎯 NPS</option>
+                          <option style={OPTION_STYLE} value="INSURANCE">🛡️ Insurance / ULIP</option>
+                          <option style={OPTION_STYLE} value="ESOPS">💼 ESOPs / RSUs</option>
+                          <option style={OPTION_STYLE} value="LENDING">🤝 Lending / Given</option>
+                          <option style={OPTION_STYLE} value="VEHICLE">🚗 Vehicle</option>
+                          <option style={OPTION_STYLE} value="OTHER">📦 Other</option>
+                        </optgroup>
                       </select>
                     </div>
                     {/* Show manual value input only when NOT in smart mode */}

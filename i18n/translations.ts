@@ -85,6 +85,24 @@ const en = {
     new_sync_desc: 'Create a new sync key for your data',
     join_sync_desc: 'Join an existing sync using a shared key',
 
+    // ─── Milestones ──────────────────────────────────────────
+    milestones_title: 'Financial Milestones',
+    milestones_goals: 'goals',
+    milestones_no_goals: 'No milestones set',
+    milestones_set_goals: 'Set financial goals to track your progress',
+    milestones_target: 'Target',
+    milestones_current: 'Current',
+    milestones_achieved: 'Achieved!',
+    milestones_goal_name: 'Goal Name',
+    milestones_target_amount: 'Target Amount (₹)',
+    milestones_track_against: 'Track Against',
+    milestones_add_goal: 'Add Goal',
+    milestones_net_worth: 'Net Worth',
+    milestones_liquid: 'Liquid Assets',
+    milestones_total: 'Total Assets',
+    milestones_placeholder_name: 'e.g. Dream Home, Emergency Fund',
+    milestones_placeholder_amount: 'e.g. 25,00,000',
+
     // ─── Privacy ────────────────────────────────────────────
     privacy_title: 'Your Privacy Matters',
     privacy_message: 'We never collect or store your identity. All data is synced anonymously using only your sync key — no emails, no phone numbers, no tracking.',
@@ -170,6 +188,24 @@ const hi: TranslationKeys = {
     new_sync_desc: 'अपने डेटा के लिए नई सिंक की बनाएं',
     join_sync_desc: 'शेयर की गई key से मौजूदा सिंक में जुड़ें',
 
+    // ─── Milestones ──────────────────────────────────────────
+    milestones_title: 'आर्थिक लक्ष्य',
+    milestones_goals: 'लक्ष्य',
+    milestones_no_goals: 'कोई लक्ष्य नहीं',
+    milestones_set_goals: 'अपनी प्रगति को ट्रैक करने के लिए लक्ष्य बनाएं',
+    milestones_target: 'लक्ष्य',
+    milestones_current: 'वर्तमान',
+    milestones_achieved: 'हासिल!',
+    milestones_goal_name: 'लक्ष्य का नाम',
+    milestones_target_amount: 'लक्ष्य राशि (₹)',
+    milestones_track_against: 'ट्रैक',
+    milestones_add_goal: 'लक्ष्य जोड़ें',
+    milestones_net_worth: 'नेट वर्थ',
+    milestones_liquid: 'तरल संपत्ति',
+    milestones_total: 'कुल संपत्ति',
+    milestones_placeholder_name: 'उदा. ड्रीम होम, आपातकालीन फंड',
+    milestones_placeholder_amount: 'उदा. 25,00,000',
+
     // ─── Privacy ────────────────────────────────────────────
     privacy_title: 'आपकी गोपनीयता हमारी प्राथमिकता',
     privacy_message: 'हम आपकी पहचान कभी नहीं लेते। सब डेटा सिर्फ़ सिंक key से गुमनाम रूप से सिंक होता है — न ईमेल, न फ़ोन नंबर, न ट्रैकिंग।',
@@ -254,6 +290,24 @@ const te: TranslationKeys = {
     sync_desc: 'మీ డేటాను పరికరాల్లో సింక్ చేయండి. కుటుంబంతో షేర్ చేయండి.',
     new_sync_desc: 'మీ డేటా కోసం కొత్త సింక్ కీ సృష్టించండి',
     join_sync_desc: 'షేర్ చేసిన కీతో ఇప్పటికే ఉన్న సింక్‌లో చేరండి',
+
+    // ─── Milestones ──────────────────────────────────────────
+    milestones_title: 'ఆర్థిక మైలురాళ్ళు',
+    milestones_goals: 'లక్ష్యాలు',
+    milestones_no_goals: 'లక్ష్యాలు లేవు',
+    milestones_set_goals: 'మీ పురోగతిని ట్రాక్ చేయడానికి లక్ష్యాలను సెట్ చేయండి',
+    milestones_target: 'లక్ష్యం',
+    milestones_current: 'ప్రస్తుతం',
+    milestones_achieved: 'సాధించారు!',
+    milestones_goal_name: 'లక్ష్యం పేరు',
+    milestones_target_amount: 'లక్ష్య మొత్తం (₹)',
+    milestones_track_against: 'ట్రాక్',
+    milestones_add_goal: 'లక్ష్యం జోడించండి',
+    milestones_net_worth: 'నికర విలువ',
+    milestones_liquid: 'ద్రవ ఆస్తులు',
+    milestones_total: 'మొత్తం ఆస్తులు',
+    milestones_placeholder_name: 'ఉదా. డ్రీమ్ హోమ్, ఎమర్జెన్సీ ఫండ్',
+    milestones_placeholder_amount: 'ఉదా. 25,00,000',
 
     // ─── Privacy ────────────────────────────────────────────
     privacy_title: 'మీ గోప్యత మాకు ముఖ్యం',
