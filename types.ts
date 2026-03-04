@@ -1,9 +1,16 @@
-export type AssetType = 'CASH' | 'MUTUAL_FUND' | 'STOCK' | 'REAL_ESTATE' | 'GOLD' | 'FD' | 'EPF_PPF' | 'CRYPTO' | 'OTHER';
-export type LiabilityType = 'HOME_LOAN' | 'CAR_LOAN' | 'EDUCATION_LOAN' | 'PERSONAL_LOAN' | 'CREDIT_CARD' | 'OTHER';
+export type AssetType = 'CASH' | 'SAVINGS_ACCOUNT' | 'MUTUAL_FUND' | 'STOCK' | 'REAL_ESTATE' | 'GOLD' | 'SILVER' | 'FD' | 'EPF_PPF' | 'NPS' | 'INSURANCE' | 'BONDS' | 'CRYPTO' | 'VEHICLE' | 'OTHER';
+export type LiabilityType = 'HOME_LOAN' | 'MORTGAGE' | 'CAR_LOAN' | 'VEHICLE_LOAN' | 'EDUCATION_LOAN' | 'PERSONAL_LOAN' | 'BUSINESS_LOAN' | 'GOLD_LOAN' | 'CREDIT_CARD' | 'OTHER';
 export type MilestoneTrackingMode = 'net_worth' | 'liquid_assets' | 'total_assets';
 
 // Asset types considered liquid (easily accessible for emergencies)
-export const LIQUID_ASSET_TYPES: AssetType[] = ['CASH', 'FD', 'MUTUAL_FUND'];
+export const LIQUID_ASSET_TYPES: AssetType[] = ['CASH', 'SAVINGS_ACCOUNT', 'MUTUAL_FUND', 'STOCK', 'FD', 'BONDS', 'CRYPTO'];
+
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+  type: 'document' | 'image' | 'link';
+}
 
 export interface Asset {
   id: string;
@@ -22,6 +29,13 @@ export interface Asset {
   sipAmount?: number;         // Monthly SIP amount in ₹
   sipDay?: number;            // Day of month (1-28, default 5)
   lastSipLogDate?: string;    // ISO date of last logged SIP
+  // Tracking metadata (optional)
+  trackingUrl?: string;       // Portal URL (e.g., https://kuvera.in)
+  trackingUsername?: string;  // Login username/email
+  trackingPassword?: string;  // Login password
+  notes?: string;             // Free-form notes
+  location?: string;           // Real estate: address or Google Maps link
+  attachments?: Attachment[];   // Documents, images, links
 }
 
 export interface Liability {
@@ -30,6 +44,12 @@ export interface Liability {
   value: number;
   type: LiabilityType;
   interestRate: number; // Annual percentage
+  // Tracking metadata (optional)
+  trackingUrl?: string;
+  trackingUsername?: string;
+  trackingPassword?: string;
+  notes?: string;
+  attachments?: Attachment[];   // Documents, images, links
 }
 
 export interface Snapshot {

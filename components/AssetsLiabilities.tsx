@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, TrendingUp, TrendingDown, PieChart as PieChartIcon, Search, RefreshCw, Loader2, Zap } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, PieChart as PieChartIcon, Search, RefreshCw, Loader2, Zap, ExternalLink, Eye, EyeOff, FileText, ChevronDown } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import { AppState, Asset, Liability, AssetType, LiabilityType } from '../types';
+import { AppState, Asset, Liability, AssetType, LiabilityType, Attachment } from '../types';
 import { GlassCard } from './ui/GlassCard';
 import { formatCurrency } from '../utils';
 import { searchMutualFunds, getLatestNAV, MFSearchResult } from '../services/mfapi';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Props {
   data: AppState;
@@ -12,23 +13,37 @@ interface Props {
 }
 
 const ASSET_COLORS: Record<string, string> = {
-  CASH: '#10b981', MUTUAL_FUND: '#6366f1', STOCK: '#f59e0b', REAL_ESTATE: '#ec4899',
-  GOLD: '#eab308', FD: '#06b6d4', EPF_PPF: '#8b5cf6', CRYPTO: '#f97316', OTHER: '#64748b',
+  CASH: '#10b981', SAVINGS_ACCOUNT: '#34d399', MUTUAL_FUND: '#6366f1', STOCK: '#f59e0b',
+  REAL_ESTATE: '#ec4899', GOLD: '#eab308', SILVER: '#9ca3af', FD: '#06b6d4', EPF_PPF: '#8b5cf6', NPS: '#a78bfa',
+  INSURANCE: '#f472b6', BONDS: '#2dd4bf', CRYPTO: '#f97316', VEHICLE: '#94a3b8', OTHER: '#64748b',
 };
 
 const ASSET_LABELS: Record<string, string> = {
-  CASH: 'Cash', MUTUAL_FUND: 'Mutual Funds', STOCK: 'Stocks', REAL_ESTATE: 'Real Estate',
-  GOLD: 'Gold', FD: 'FD/RD', EPF_PPF: 'EPF/PPF/NPS', CRYPTO: 'Crypto', OTHER: 'Other',
+  CASH: 'Cash', SAVINGS_ACCOUNT: 'Savings A/C', MUTUAL_FUND: 'Mutual Funds', STOCK: 'Stocks',
+  REAL_ESTATE: 'Real Estate', GOLD: 'Gold', SILVER: 'Silver', FD: 'FD/RD', EPF_PPF: 'EPF/PPF', NPS: 'NPS',
+  INSURANCE: 'Insurance', BONDS: 'Bonds', CRYPTO: 'Crypto', VEHICLE: 'Vehicle', OTHER: 'Other',
+};
+
+const ASSET_ICONS: Record<string, string> = {
+  CASH: '💵', SAVINGS_ACCOUNT: '🏦', MUTUAL_FUND: '📊', STOCK: '📈', REAL_ESTATE: '🏠',
+  GOLD: '🪙', SILVER: '🪨', FD: '🔒', EPF_PPF: '🏛️', NPS: '🎯', INSURANCE: '🛡️',
+  BONDS: '📜', CRYPTO: '₿', VEHICLE: '🚗', OTHER: '📦',
+};
+
+const LIABILITY_ICONS: Record<string, string> = {
+  HOME_LOAN: '🏠', MORTGAGE: '🏗️', CAR_LOAN: '🚗', VEHICLE_LOAN: '🏍️',
+  EDUCATION_LOAN: '🎓', PERSONAL_LOAN: '👤', BUSINESS_LOAN: '💼',
+  GOLD_LOAN: '🪙', CREDIT_CARD: '💳', OTHER: '📋',
 };
 
 // Types that support smart pricing
-const SMART_TYPES: AssetType[] = ['MUTUAL_FUND', 'STOCK', 'GOLD'];
+const SMART_TYPES: AssetType[] = ['MUTUAL_FUND', 'STOCK', 'GOLD', 'SILVER'];
 
 // ─── Modern Input Styles ──────────────────────────────────────────────
-const INPUT_CLASS = 'w-full bg-white/[0.03] text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-emerald-400/40 focus:ring-1 focus:ring-emerald-400/20 outline-none transition-all placeholder:text-slate-600';
-const INPUT_CLASS_ROSE = 'w-full bg-white/[0.03] text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-rose-400/40 focus:ring-1 focus:ring-rose-400/20 outline-none transition-all placeholder:text-slate-600';
-const SELECT_CLASS = 'w-full bg-slate-800/60 text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-emerald-400/40 outline-none transition-all cursor-pointer';
-const SELECT_CLASS_ROSE = 'w-full bg-slate-800/60 text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-rose-400/40 outline-none transition-all cursor-pointer';
+const INPUT_CLASS = 'w-full bg-white/[0.03] text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-emerald-400/40 focus:ring-1 focus:ring-emerald-400/20 outline-none transition-all placeholder:text-slate-500';
+const INPUT_CLASS_ROSE = 'w-full bg-white/[0.03] text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-rose-400/40 focus:ring-1 focus:ring-rose-400/20 outline-none transition-all placeholder:text-slate-500';
+const SELECT_CLASS = 'w-full bg-slate-800/60 text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-emerald-400/40 outline-none transition-all cursor-pointer appearance-none';
+const SELECT_CLASS_ROSE = 'w-full bg-slate-800/60 text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-rose-400/40 outline-none transition-all cursor-pointer appearance-none';
 const LABEL_CLASS = 'text-[11px] text-slate-400 font-medium block mb-1.5';
 const OPTION_STYLE = { backgroundColor: '#1e293b', color: '#e2e8f0' };
 
@@ -136,8 +151,8 @@ const SmartValueBadge: React.FC<{ asset: Asset }> = ({ asset }) => {
       </div>
     );
   }
-  if ((asset.type === 'STOCK' || asset.type === 'GOLD') && asset.quantity && asset.pricePerUnit) {
-    const unit = asset.type === 'GOLD' ? 'g' : 'qty';
+  if ((asset.type === 'STOCK' || asset.type === 'GOLD' || asset.type === 'SILVER') && asset.quantity && asset.pricePerUnit) {
+    const unit = (asset.type === 'GOLD' || asset.type === 'SILVER') ? 'g' : 'qty';
     return (
       <div className="text-[10px] text-amber-300/80 flex items-center gap-1 mt-0.5">
         <Zap className="w-2.5 h-2.5" />
@@ -152,7 +167,32 @@ const SmartValueBadge: React.FC<{ asset: Asset }> = ({ asset }) => {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════
 export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'assets' | 'liabilities'>('assets');
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [showPasswords, setShowPasswords] = useState<Set<string>>(new Set());
+  const [savedField, setSavedField] = useState<string | null>(null);
+
+  // Brief "saved" flash for notes/fields
+  const flashSaved = (fieldId: string) => {
+    setSavedField(fieldId);
+    setTimeout(() => setSavedField(null), 1500);
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const togglePassword = (id: string) => {
+    setShowPasswords(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const addAsset = () => {
     const newAsset: Asset = {
@@ -190,7 +230,7 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
         if (updated.valuationMode === 'smart') {
           if (updated.type === 'MUTUAL_FUND' && updated.units && updated.navPerUnit) {
             updated.value = Math.round(updated.units * updated.navPerUnit);
-          } else if ((updated.type === 'STOCK' || updated.type === 'GOLD') && updated.quantity && updated.pricePerUnit) {
+          } else if ((updated.type === 'STOCK' || updated.type === 'GOLD' || updated.type === 'SILVER') && updated.quantity && updated.pricePerUnit) {
             updated.value = Math.round(updated.quantity * updated.pricePerUnit);
           }
         }
@@ -198,10 +238,12 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
         return updated;
       })
     });
+    flashSaved(`card-${id}`);
   };
 
   const updateLiability = (id: string, field: keyof Liability, value: any) => {
     onUpdate({ liabilities: data.liabilities.map(l => l.id === id ? { ...l, [field]: value } : l) });
+    flashSaved(`card-${id}`);
   };
 
   // Handle MF scheme selection
@@ -432,7 +474,7 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
         )}
 
         {/* Gold: Grams + Price per gram */}
-        {isSmart && asset.type === 'GOLD' && (
+        {isSmart && (asset.type === 'GOLD' || asset.type === 'SILVER') && (
           <div className="sm:col-span-12 grid grid-cols-1 sm:grid-cols-12 gap-4 mt-2">
             <div className="sm:col-span-4">
               <label className={LABEL_CLASS}>Weight (grams)</label>
@@ -488,7 +530,7 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
         <GlassCard className="bg-blue-500/10 border-blue-500/20">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-blue-500/20 rounded-lg"><div className="font-bold text-blue-400 px-1">₹</div></div>
-            <span className="text-blue-200 text-sm font-medium">Net Worth</span>
+            <span className="text-blue-200 text-sm font-medium">{t('net_worth')}</span>
           </div>
           <div className="text-2xl font-bold text-white">{formatCurrency(netWorth)}</div>
         </GlassCard>
@@ -496,8 +538,8 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
 
       {/* Pie Chart */}
       {pieData.length > 0 && (
-        <GlassCard title="Asset Allocation" action={
-          <div className="flex items-center gap-1 text-xs text-slate-400"><PieChartIcon className="w-3 h-3" /> By category</div>
+        <GlassCard title={t('asset_allocation')} action={
+          <div className="flex items-center gap-1 text-xs text-slate-400"><PieChartIcon className="w-3 h-3" /> {t('by_category')}</div>
         }>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             <div className="h-[220px]">
@@ -528,13 +570,13 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
         </GlassCard>
       )}
 
-      <GlassCard title="Portfolio Manager">
+      <GlassCard title={t('portfolio_manager')}>
         <div className="flex gap-4 mb-6 border-b border-white/10 pb-1">
           <button onClick={() => setActiveTab('assets')} className={`pb-3 px-2 text-sm font-medium transition-colors ${activeTab === 'assets' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400 hover:text-white'}`}>
-            Assets ({data.assets.length})
+            {t('assets_tab')} ({data.assets.length})
           </button>
           <button onClick={() => setActiveTab('liabilities')} className={`pb-3 px-2 text-sm font-medium transition-colors ${activeTab === 'liabilities' ? 'text-rose-400 border-b-2 border-rose-400' : 'text-slate-400 hover:text-white'}`}>
-            Liabilities ({data.liabilities.length})
+            {t('liabilities_tab')} ({data.liabilities.length})
           </button>
         </div>
 
@@ -546,25 +588,31 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                   <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <TrendingUp className="w-8 h-8 text-emerald-500/50" />
                   </div>
-                  <p className="text-slate-400 mb-1">No assets tracked yet</p>
-                  <p className="text-slate-500 text-sm mb-4">Start by adding your savings, investments, or property</p>
+                  <p className="text-slate-400 mb-1">{t('no_assets_tracked')}</p>
+                  <p className="text-slate-500 text-sm mb-4">{t('start_by_adding')}</p>
                 </div>
               )}
               {data.assets.map(asset => (
-                <div key={asset.id} className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.06] hover:border-white/15 hover:bg-white/[0.05] transition-all group" style={{ borderLeft: `3px solid ${ASSET_COLORS[asset.type] || '#64748b'}40` }}>
+                <div key={asset.id} className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.06] hover:border-white/15 hover:bg-white/[0.05] transition-all group relative" style={{ borderLeft: `3px solid ${ASSET_COLORS[asset.type] || '#64748b'}40` }}>
+                  {savedField === `card-${asset.id}` && (
+                    <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] rounded-full border border-emerald-500/20 animate-pulse z-10">✓ Saved</div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                     <div className="sm:col-span-4">
-                      <label className={LABEL_CLASS}>Name</label>
-                      <input
-                        type="text" value={asset.name}
-                        onChange={(e) => updateAsset(asset.id, { name: e.target.value })}
-                        placeholder="e.g. HDFC Bank, Gold"
-                        className={INPUT_CLASS}
-                      />
+                      <label className={LABEL_CLASS}>{t('name')}</label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg" title={ASSET_LABELS[asset.type]}>{ASSET_ICONS[asset.type] || '📦'}</span>
+                        <input
+                          type="text" value={asset.name}
+                          onChange={(e) => updateAsset(asset.id, { name: e.target.value })}
+                          placeholder="e.g. HDFC Bank, Gold"
+                          className={INPUT_CLASS}
+                        />
+                      </div>
                       <SmartValueBadge asset={asset} />
                     </div>
                     <div className="sm:col-span-3">
-                      <label className={LABEL_CLASS}>Type</label>
+                      <label className={LABEL_CLASS}>{t('type')}</label>
                       <select
                         value={asset.type}
                         onChange={(e) => {
@@ -586,21 +634,27 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                         }}
                         className={SELECT_CLASS}
                       >
-                        <option style={OPTION_STYLE} value="CASH">Cash / Savings</option>
-                        <option style={OPTION_STYLE} value="MUTUAL_FUND">Mutual Fund</option>
-                        <option style={OPTION_STYLE} value="STOCK">Stocks</option>
-                        <option style={OPTION_STYLE} value="GOLD">Gold (SGB/Physical)</option>
-                        <option style={OPTION_STYLE} value="FD">FD / RD</option>
-                        <option style={OPTION_STYLE} value="EPF_PPF">EPF / PPF / NPS</option>
-                        <option style={OPTION_STYLE} value="REAL_ESTATE">Real Estate</option>
-                        <option style={OPTION_STYLE} value="CRYPTO">Crypto</option>
-                        <option style={OPTION_STYLE} value="OTHER">Other</option>
+                        <option style={OPTION_STYLE} value="CASH">💵 Cash</option>
+                        <option style={OPTION_STYLE} value="SAVINGS_ACCOUNT">🏦 Savings A/C</option>
+                        <option style={OPTION_STYLE} value="MUTUAL_FUND">📊 Mutual Fund</option>
+                        <option style={OPTION_STYLE} value="STOCK">📈 Stocks</option>
+                        <option style={OPTION_STYLE} value="GOLD">🪙 Gold (SGB/Physical)</option>
+                        <option style={OPTION_STYLE} value="SILVER">🪨 Silver</option>
+                        <option style={OPTION_STYLE} value="FD">🔒 FD / RD</option>
+                        <option style={OPTION_STYLE} value="EPF_PPF">🏛️ EPF / PPF</option>
+                        <option style={OPTION_STYLE} value="NPS">🎯 NPS</option>
+                        <option style={OPTION_STYLE} value="INSURANCE">🛡️ Insurance / ULIP</option>
+                        <option style={OPTION_STYLE} value="BONDS">📜 Bonds / Debentures</option>
+                        <option style={OPTION_STYLE} value="REAL_ESTATE">🏠 Real Estate</option>
+                        <option style={OPTION_STYLE} value="CRYPTO">₿ Crypto</option>
+                        <option style={OPTION_STYLE} value="VEHICLE">🚗 Vehicle</option>
+                        <option style={OPTION_STYLE} value="OTHER">📦 Other</option>
                       </select>
                     </div>
                     {/* Show manual value input only when NOT in smart mode */}
                     {asset.valuationMode !== 'smart' && (
                       <div className="sm:col-span-2">
-                        <label className={LABEL_CLASS}>Value (₹)</label>
+                        <label className={LABEL_CLASS}>{t('value')}</label>
                         <input
                           type="text" inputMode="decimal" value={formatIndian(asset.value)}
                           onChange={(e) => updateAsset(asset.id, { value: parseIndian(e.target.value) })}
@@ -610,21 +664,28 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                     )}
                     {asset.valuationMode === 'smart' && (
                       <div className="sm:col-span-2">
-                        <label className={LABEL_CLASS}>Value (₹)</label>
+                        <label className={LABEL_CLASS}>{t('value')}</label>
                         <div className="text-emerald-400 font-bold font-mono pb-1 text-sm">{formatCurrency(asset.value)}</div>
                       </div>
                     )}
                     <div className="sm:col-span-2">
-                      <label className={LABEL_CLASS}>Growth %</label>
+                      <label className={LABEL_CLASS}>{t('growth_pct')}</label>
                       <input
-                        type="number" step="0.1"
-                        value={(asset.growthRate * 100).toFixed(1)}
-                        onChange={(e) => updateAsset(asset.id, { growthRate: (parseFloat(e.target.value) || 0) / 100 })}
+                        type="text" inputMode="decimal"
+                        defaultValue={(asset.growthRate * 100).toFixed(1)}
+                        key={`growth-${asset.id}-${asset.type}`}
+                        onBlur={(e) => {
+                          const val = parseFloat(e.target.value);
+                          updateAsset(asset.id, { growthRate: (isNaN(val) ? 0 : val) / 100 });
+                        }}
                         className={INPUT_CLASS}
                       />
                     </div>
-                    <div className="sm:col-span-1 flex justify-end items-end">
-                      <button onClick={() => removeAsset(asset.id)} className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                    <div className="sm:col-span-1 flex justify-end items-end gap-0.5">
+                      <button onClick={() => toggleExpand(asset.id)} title="Tracking details" className={`p-2 rounded-lg transition-all ${expandedCards.has(asset.id) ? 'text-indigo-400 bg-indigo-400/10' : 'text-slate-500 hover:text-indigo-400 hover:bg-indigo-400/10'}`}>
+                        <FileText className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => removeAsset(asset.id)} title="Remove asset" className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -633,10 +694,169 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
                     {renderSmartFields(asset)}
                   </div>
+                  {/* Tracking Details (collapsible) */}
+                  {expandedCards.has(asset.id) && (
+                    <div className="mt-3 pt-3 border-t border-white/5 animate-in slide-in-from-top-1">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] text-slate-500 font-medium">Tracking Details</span>
+                        {savedField === `panel-${asset.id}` && (
+                          <span className="text-[10px] text-emerald-400 flex items-center gap-1 animate-pulse">✓ Auto-saved</span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                        <div className="sm:col-span-5">
+                          <label className={LABEL_CLASS}>Portal URL</label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="url"
+                              value={asset.trackingUrl || ''}
+                              onChange={(e) => updateAsset(asset.id, { trackingUrl: e.target.value })}
+                              onBlur={() => flashSaved(`panel-${asset.id}`)}
+                              placeholder="https://kuvera.in"
+                              className={INPUT_CLASS}
+                            />
+                            {asset.trackingUrl && (
+                              <a href={asset.trackingUrl} target="_blank" rel="noopener noreferrer" className="p-2.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all shrink-0">
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label className={LABEL_CLASS}>Username</label>
+                          <input
+                            type="text"
+                            value={asset.trackingUsername || ''}
+                            onChange={(e) => updateAsset(asset.id, { trackingUsername: e.target.value })}
+                            onBlur={() => flashSaved(`panel-${asset.id}`)}
+                            placeholder="login ID or email"
+                            className={INPUT_CLASS}
+                          />
+                        </div>
+                        <div className="sm:col-span-4">
+                          <label className={LABEL_CLASS}>Password</label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type={showPasswords.has(asset.id) ? 'text' : 'password'}
+                              value={asset.trackingPassword || ''}
+                              onChange={(e) => updateAsset(asset.id, { trackingPassword: e.target.value })}
+                              onBlur={() => flashSaved(`panel-${asset.id}`)}
+                              placeholder="••••••••"
+                              className={INPUT_CLASS}
+                            />
+                            <button onClick={() => togglePassword(asset.id)} className="p-2.5 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-all shrink-0">
+                              {showPasswords.has(asset.id) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Context-Specific: Real Estate Location */}
+                        {asset.type === 'REAL_ESTATE' && (
+                          <div className="sm:col-span-12">
+                            <label className={LABEL_CLASS}>📍 Location / Maps Link</label>
+                            <div className="flex gap-1.5">
+                              <input
+                                type="text"
+                                value={asset.location || ''}
+                                onChange={(e) => updateAsset(asset.id, { location: e.target.value })}
+                                onBlur={() => flashSaved(`panel-${asset.id}`)}
+                                placeholder="Enter address or paste Google Maps link"
+                                className={INPUT_CLASS}
+                              />
+                              {asset.location && (
+                                <a
+                                  href={asset.location.startsWith('http') ? asset.location : `https://maps.google.com/?q=${encodeURIComponent(asset.location)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2.5 text-slate-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all shrink-0"
+                                  title="Open in Maps"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="sm:col-span-12">
+                          <label className={LABEL_CLASS}>{t('notes')}</label>
+                          <textarea
+                            value={asset.notes || ''}
+                            onChange={(e) => updateAsset(asset.id, { notes: e.target.value })}
+                            onBlur={() => flashSaved(`panel-${asset.id}`)}
+                            placeholder={
+                              asset.type === 'REAL_ESTATE' ? 'Property details, registration number, builder name, possession date...' :
+                                asset.type === 'GOLD' || asset.type === 'SILVER' ? 'Purity (24K/22K), form (coins/bars/jewellery), purchase date, dealer...' :
+                                  asset.type === 'FD' ? 'Maturity date, FD number, auto-renewal status, nominee...' :
+                                    asset.type === 'INSURANCE' ? 'Policy number, premium amount, due date, sum assured, nominee...' :
+                                      asset.type === 'VEHICLE' ? 'Registration number, model, purchase date, insurance expiry...' :
+                                        asset.type === 'BONDS' ? 'Bond series, maturity date, coupon rate, ISIN...' :
+                                          asset.type === 'EPF_PPF' || asset.type === 'NPS' ? 'UAN/PRAN number, employer, contribution amount...' :
+                                            t('notes_placeholder_asset')
+                            }
+                            rows={2}
+                            className={`${INPUT_CLASS} resize-none`}
+                          />
+                        </div>
+
+                        {/* Attachments */}
+                        <div className="sm:col-span-12">
+                          <label className={LABEL_CLASS}>📎 Attachments</label>
+                          {(asset.attachments || []).length > 0 && (
+                            <div className="space-y-1.5 mb-2">
+                              {(asset.attachments || []).map(att => (
+                                <div key={att.id} className="flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/[0.06] group">
+                                  <span className="text-xs">{att.type === 'image' ? '🖼️' : att.type === 'document' ? '📄' : '🔗'}</span>
+                                  <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 truncate flex-1">{att.name}</a>
+                                  <button onClick={() => updateAsset(asset.id, { attachments: (asset.attachments || []).filter(a => a.id !== att.id) })} className="text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all p-0.5" title="Remove">
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              placeholder="Link name (e.g. Sale deed)"
+                              id={`att-name-${asset.id}`}
+                              className={`${INPUT_CLASS} text-xs`}
+                            />
+                            <input
+                              type="url"
+                              placeholder="Paste URL (Drive, OneDrive...)"
+                              id={`att-url-${asset.id}`}
+                              className={`${INPUT_CLASS} text-xs flex-1`}
+                            />
+                            <button
+                              onClick={() => {
+                                const nameEl = document.getElementById(`att-name-${asset.id}`) as HTMLInputElement;
+                                const urlEl = document.getElementById(`att-url-${asset.id}`) as HTMLInputElement;
+                                if (nameEl?.value && urlEl?.value) {
+                                  const newAtt: Attachment = {
+                                    id: crypto.randomUUID(),
+                                    name: nameEl.value,
+                                    url: urlEl.value,
+                                    type: urlEl.value.match(/\.(jpg|jpeg|png|gif|webp|svg)/i) ? 'image' : urlEl.value.match(/\.(pdf|doc|docx|xls|xlsx)/i) ? 'document' : 'link',
+                                  };
+                                  updateAsset(asset.id, { attachments: [...(asset.attachments || []), newAtt] });
+                                  nameEl.value = '';
+                                  urlEl.value = '';
+                                }
+                              }}
+                              className="px-3 py-2 bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 rounded-lg text-xs font-medium transition-all shrink-0"
+                            >
+                              + Add
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               <button onClick={addAsset} className="w-full py-3.5 border-2 border-dashed border-white/10 rounded-2xl text-slate-500 hover:text-emerald-300 hover:border-emerald-400/30 hover:bg-emerald-400/5 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
-                <Plus className="w-4 h-4" /> Add Asset
+                <Plus className="w-4 h-4" /> {t('add_asset')}
               </button>
             </>
           )}
@@ -648,42 +868,181 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                   <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <TrendingDown className="w-8 h-8 text-rose-500/50" />
                   </div>
-                  <p className="text-slate-400 mb-1">No liabilities tracked</p>
-                  <p className="text-slate-500 text-sm mb-4">Add loans or credit card balances</p>
+                  <p className="text-slate-400 mb-1">{t('no_liabilities_tracked')}</p>
+                  <p className="text-slate-500 text-sm mb-4">{t('add_loans_or_cc')}</p>
                 </div>
               )}
               {data.liabilities.map(liab => (
-                <div key={liab.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center bg-white/[0.03] p-5 rounded-2xl border border-white/[0.06] hover:border-white/15 hover:bg-white/[0.05] transition-all group" style={{ borderLeft: '3px solid rgba(244,63,94,0.3)' }}>
-                  <div className="sm:col-span-4">
-                    <label className={LABEL_CLASS}>Name</label>
-                    <input type="text" value={liab.name} onChange={(e) => updateLiability(liab.id, 'name', e.target.value)} placeholder="e.g. SBI Home Loan" className={INPUT_CLASS_ROSE} />
+                <div key={liab.id} className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.06] hover:border-white/15 hover:bg-white/[0.05] transition-all group relative" style={{ borderLeft: '3px solid rgba(244,63,94,0.3)' }}>
+                  {savedField === `card-${liab.id}` && (
+                    <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] rounded-full border border-emerald-500/20 animate-pulse z-10">✓ Saved</div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                    <div className="sm:col-span-4">
+                      <label className={LABEL_CLASS}>{t('name')}</label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg" title={liab.type.replace(/_/g, ' ')}>{LIABILITY_ICONS[liab.type] || '📋'}</span>
+                        <input type="text" value={liab.name} onChange={(e) => updateLiability(liab.id, 'name', e.target.value)} placeholder="e.g. SBI Home Loan" className={INPUT_CLASS_ROSE} />
+                      </div>
+                    </div>
+                    <div className="sm:col-span-3">
+                      <label className={LABEL_CLASS}>{t('type')}</label>
+                      <select value={liab.type} onChange={(e) => updateLiability(liab.id, 'type', e.target.value as LiabilityType)} className={SELECT_CLASS_ROSE}>
+                        <option style={OPTION_STYLE} value="HOME_LOAN">🏠 Home Loan</option>
+                        <option style={OPTION_STYLE} value="MORTGAGE">🏗️ Mortgage</option>
+                        <option style={OPTION_STYLE} value="CAR_LOAN">🚗 Car Loan</option>
+                        <option style={OPTION_STYLE} value="VEHICLE_LOAN">🏍️ Vehicle Loan</option>
+                        <option style={OPTION_STYLE} value="EDUCATION_LOAN">🎓 Education Loan</option>
+                        <option style={OPTION_STYLE} value="PERSONAL_LOAN">👤 Personal Loan</option>
+                        <option style={OPTION_STYLE} value="BUSINESS_LOAN">💼 Business Loan</option>
+                        <option style={OPTION_STYLE} value="GOLD_LOAN">🪙 Gold Loan</option>
+                        <option style={OPTION_STYLE} value="CREDIT_CARD">💳 Credit Card</option>
+                        <option style={OPTION_STYLE} value="OTHER">📋 Other</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className={LABEL_CLASS}>{t('balance')}</label>
+                      <input type="text" inputMode="decimal" value={formatIndian(liab.value)} onChange={(e) => updateLiability(liab.id, 'value', parseIndian(e.target.value))} className={INPUT_CLASS_ROSE} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className={LABEL_CLASS}>{t('interest_pct')}</label>
+                      <input type="text" inputMode="decimal" defaultValue={(liab.interestRate * 100).toFixed(1)} key={`interest-${liab.id}-${liab.type}`} onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        updateLiability(liab.id, 'interestRate', (isNaN(val) ? 0 : val) / 100);
+                      }} className={INPUT_CLASS_ROSE} />
+                    </div>
+                    <div className="sm:col-span-1 flex justify-end items-end gap-0.5">
+                      <button onClick={() => toggleExpand(liab.id)} title="Tracking details" className={`p-2 rounded-lg transition-all ${expandedCards.has(liab.id) ? 'text-indigo-400 bg-indigo-400/10' : 'text-slate-500 hover:text-indigo-400 hover:bg-indigo-400/10'}`}>
+                        <FileText className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => removeLiability(liab.id)} title="Remove liability" className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                    </div>
                   </div>
-                  <div className="sm:col-span-3">
-                    <label className={LABEL_CLASS}>Type</label>
-                    <select value={liab.type} onChange={(e) => updateLiability(liab.id, 'type', e.target.value as LiabilityType)} className={SELECT_CLASS_ROSE}>
-                      <option style={OPTION_STYLE} value="HOME_LOAN">Home Loan</option>
-                      <option style={OPTION_STYLE} value="CAR_LOAN">Car Loan</option>
-                      <option style={OPTION_STYLE} value="EDUCATION_LOAN">Education Loan</option>
-                      <option style={OPTION_STYLE} value="PERSONAL_LOAN">Personal Loan</option>
-                      <option style={OPTION_STYLE} value="CREDIT_CARD">Credit Card</option>
-                      <option style={OPTION_STYLE} value="OTHER">Other</option>
-                    </select>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={LABEL_CLASS}>Balance (₹)</label>
-                    <input type="text" inputMode="decimal" value={formatIndian(liab.value)} onChange={(e) => updateLiability(liab.id, 'value', parseIndian(e.target.value))} className={INPUT_CLASS_ROSE} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={LABEL_CLASS}>Interest %</label>
-                    <input type="number" step="0.1" value={(liab.interestRate * 100).toFixed(1)} onChange={(e) => updateLiability(liab.id, 'interestRate', (parseFloat(e.target.value) || 0) / 100)} className={INPUT_CLASS_ROSE} />
-                  </div>
-                  <div className="sm:col-span-1 flex justify-end items-end">
-                    <button onClick={() => removeLiability(liab.id)} className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
-                  </div>
+                  {/* Tracking Details (collapsible) */}
+                  {expandedCards.has(liab.id) && (
+                    <div className="mt-3 pt-3 border-t border-white/5">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] text-slate-500 font-medium">Tracking Details</span>
+                        {savedField === `panel-${liab.id}` && (
+                          <span className="text-[10px] text-emerald-400 flex items-center gap-1 animate-pulse">✓ Auto-saved</span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                        <div className="sm:col-span-5">
+                          <label className={LABEL_CLASS}>{t('portal_url')}</label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="url"
+                              value={liab.trackingUrl || ''}
+                              onChange={(e) => updateLiability(liab.id, 'trackingUrl', e.target.value)}
+                              onBlur={() => flashSaved(`panel-${liab.id}`)}
+                              placeholder="https://bank.example.com"
+                              className={INPUT_CLASS_ROSE}
+                            />
+                            {liab.trackingUrl && (
+                              <a href={liab.trackingUrl} target="_blank" rel="noopener noreferrer" className="p-2.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all shrink-0">
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label className={LABEL_CLASS}>{t('username')}</label>
+                          <input
+                            type="text"
+                            value={liab.trackingUsername || ''}
+                            onChange={(e) => updateLiability(liab.id, 'trackingUsername', e.target.value)}
+                            onBlur={() => flashSaved(`panel-${liab.id}`)}
+                            placeholder="login ID or email"
+                            className={INPUT_CLASS_ROSE}
+                          />
+                        </div>
+                        <div className="sm:col-span-4">
+                          <label className={LABEL_CLASS}>{t('password')}</label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type={showPasswords.has(liab.id) ? 'text' : 'password'}
+                              value={liab.trackingPassword || ''}
+                              onChange={(e) => updateLiability(liab.id, 'trackingPassword', e.target.value)}
+                              onBlur={() => flashSaved(`panel-${liab.id}`)}
+                              placeholder="••••••••"
+                              className={INPUT_CLASS_ROSE}
+                            />
+                            <button onClick={() => togglePassword(liab.id)} className="p-2.5 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-all shrink-0">
+                              {showPasswords.has(liab.id) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="sm:col-span-12">
+                          <label className={LABEL_CLASS}>{t('notes')}</label>
+                          <textarea
+                            value={liab.notes || ''}
+                            onChange={(e) => updateLiability(liab.id, 'notes', e.target.value)}
+                            onBlur={() => flashSaved(`panel-${liab.id}`)}
+                            placeholder={
+                              liab.type === 'HOME_LOAN' || liab.type === 'MORTGAGE' ? 'EMI amount, tenure, bank branch, prepayment plans, property linked...' :
+                                liab.type === 'CAR_LOAN' || liab.type === 'VEHICLE_LOAN' ? 'EMI amount, tenure, vehicle details, foreclosure charges...' :
+                                  liab.type === 'EDUCATION_LOAN' ? 'EMI, moratorium period, institution, course details...' :
+                                    liab.type === 'GOLD_LOAN' ? 'Pledged weight, renewal date, interest payment frequency...' :
+                                      liab.type === 'CREDIT_CARD' ? 'Bill date, due date, credit limit, reward points...' :
+                                        t('notes_placeholder_liability')
+                            }
+                            rows={2}
+                            className={`${INPUT_CLASS_ROSE} resize-none`}
+                          />
+                        </div>
+
+                        {/* Attachments */}
+                        <div className="sm:col-span-12">
+                          <label className={LABEL_CLASS}>📎 Attachments</label>
+                          {(liab.attachments || []).length > 0 && (
+                            <div className="space-y-1.5 mb-2">
+                              {(liab.attachments || []).map(att => (
+                                <div key={att.id} className="flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/[0.06] group">
+                                  <span className="text-xs">{att.type === 'image' ? '🖼️' : att.type === 'document' ? '📄' : '🔗'}</span>
+                                  <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 truncate flex-1">{att.name}</a>
+                                  <button onClick={() => {
+                                    const updated = (liab.attachments || []).filter(a => a.id !== att.id);
+                                    updateLiability(liab.id, 'attachments' as any, updated);
+                                  }} className="text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all p-0.5" title="Remove">
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-1.5">
+                            <input type="text" placeholder="Link name (e.g. Loan agreement)" id={`att-name-${liab.id}`} className={`${INPUT_CLASS_ROSE} text-xs`} />
+                            <input type="url" placeholder="Paste URL (Drive, OneDrive...)" id={`att-url-${liab.id}`} className={`${INPUT_CLASS_ROSE} text-xs flex-1`} />
+                            <button
+                              onClick={() => {
+                                const nameEl = document.getElementById(`att-name-${liab.id}`) as HTMLInputElement;
+                                const urlEl = document.getElementById(`att-url-${liab.id}`) as HTMLInputElement;
+                                if (nameEl?.value && urlEl?.value) {
+                                  const newAtt: Attachment = {
+                                    id: crypto.randomUUID(),
+                                    name: nameEl.value,
+                                    url: urlEl.value,
+                                    type: urlEl.value.match(/\.(jpg|jpeg|png|gif|webp|svg)/i) ? 'image' : urlEl.value.match(/\.(pdf|doc|docx|xls|xlsx)/i) ? 'document' : 'link',
+                                  };
+                                  updateLiability(liab.id, 'attachments' as any, [...(liab.attachments || []), newAtt]);
+                                  nameEl.value = '';
+                                  urlEl.value = '';
+                                }
+                              }}
+                              className="px-3 py-2 bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 rounded-lg text-xs font-medium transition-all shrink-0"
+                            >
+                              + Add
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               <button onClick={addLiability} className="w-full py-3.5 border-2 border-dashed border-white/10 rounded-2xl text-slate-500 hover:text-rose-300 hover:border-rose-400/30 hover:bg-rose-400/5 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
-                <Plus className="w-4 h-4" /> Add Liability
+                <Plus className="w-4 h-4" /> {t('add_liability')}
               </button>
             </>
           )}
@@ -693,8 +1052,8 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
         <div className="mt-8 pt-6 border-t border-white/10">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">
             <div>
-              <h4 className="text-white font-medium">Monthly Surplus / SIP Investment</h4>
-              <p className="text-blue-200/70 text-sm">How much do you save or invest each month?</p>
+              <h4 className="text-white font-medium">{t('monthly_surplus')}</h4>
+              <p className="text-blue-200/70 text-sm">{t('how_much_save')}</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-blue-300 font-bold">₹</span>

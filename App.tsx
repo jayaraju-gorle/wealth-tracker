@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { HashRouter } from 'react-router-dom';
-import { LayoutDashboard, Wallet, History, Menu, X, Activity, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react';
+import { LayoutDashboard, Wallet, History, Menu, X, Activity, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Calendar, Globe, ShieldCheck } from 'lucide-react';
 import { useStore } from './services/store';
 import { AssetsLiabilities } from './components/AssetsLiabilities';
 import { HistoryMachine } from './components/HistoryMachine';
@@ -9,9 +9,11 @@ import { Milestones } from './components/Milestones';
 import { SyncManager } from './components/SyncManager';
 import { Toast } from './components/ui/Toast';
 import { formatCurrency, formatCompact } from './utils';
+import { LanguageProvider, useLanguage, LANGUAGE_OPTIONS } from './i18n/LanguageContext';
 
 const App: React.FC = () => {
   const { state, updateState, isSynced, syncStatus, forcePull, autoSnapshotTaken } = useStore();
+  const { t, language, setLanguage } = useLanguage();
   const [showToast, setShowToast] = useState(false);
 
   // Show toast when auto-snapshot fires
@@ -83,26 +85,44 @@ const App: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">WealthTracker</h1>
-              <p className="text-xs text-slate-400">Track. Sync. Grow.</p>
+              <p className="text-xs text-slate-400">{t('app_tagline')}</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <NavItem view="dashboard" label="Dashboard" icon={LayoutDashboard} />
-            <NavItem view="assets" label="Assets & Debts" icon={Wallet} />
-            <NavItem view="history" label="Time Machine" icon={History} />
+            <NavItem view="dashboard" label={t('nav_dashboard')} icon={LayoutDashboard} />
+            <NavItem view="assets" label={t('nav_assets')} icon={Wallet} />
+            <NavItem view="history" label={t('nav_history')} icon={History} />
           </div>
 
-          <div className="mt-10 px-4 hidden md:block">
+          {/* Language Selector */}
+          <div className="mt-6 px-4">
+            <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/5">
+              <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as any)}
+                className="bg-transparent text-sm text-white outline-none cursor-pointer flex-1 appearance-none"
+              >
+                {LANGUAGE_OPTIONS.map(opt => (
+                  <option key={opt.code} value={opt.code} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>
+                    {opt.native}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-6 px-4 hidden md:block">
             <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30">
-              <p className="text-xs text-indigo-200 mb-1 font-semibold uppercase tracking-wider">Net Worth</p>
+              <p className="text-xs text-indigo-200 mb-1 font-semibold uppercase tracking-wider">{t('net_worth')}</p>
               <p className="text-2xl font-bold text-white">
                 {formatCurrency(netWorth)}
               </p>
               {monthChange && (
                 <div className={`flex items-center gap-1 mt-2 text-xs ${monthChange.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {monthChange.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  <span>{monthChange.percent >= 0 ? '+' : ''}{monthChange.percent.toFixed(1)}% from last entry</span>
+                  <span>{monthChange.percent >= 0 ? '+' : ''}{monthChange.percent.toFixed(1)}% {t('from_last_entry')}</span>
                 </div>
               )}
             </div>
@@ -122,12 +142,21 @@ const App: React.FC = () => {
               onForcePull={forcePull}
             />
 
+            {/* Privacy Assurance Banner */}
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-900/20 border border-emerald-500/10 text-emerald-200/80">
+              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+              <p className="text-[11px] leading-relaxed">
+                <span className="font-semibold text-emerald-300">{t('privacy_title')}:</span>{' '}
+                {t('privacy_message')}
+              </p>
+            </div>
+
             {activeView === 'dashboard' && (
               <div className="space-y-6 animate-fade-in">
                 {/* Welcome & Date */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-white">Welcome back 👋</h2>
+                    <h2 className="text-2xl md:text-3xl font-bold text-white">{t('welcome')}</h2>
                     <div className="flex items-center gap-2 mt-1 text-slate-400 text-sm">
                       <Calendar className="w-4 h-4" />
                       <span>{today}</span>
@@ -143,7 +172,7 @@ const App: React.FC = () => {
                       <div className="p-2.5 bg-emerald-500/20 rounded-xl">
                         <TrendingUp className="w-5 h-5 text-emerald-400" />
                       </div>
-                      <span className="text-emerald-200 text-sm font-medium">Total Assets</span>
+                      <span className="text-emerald-200 text-sm font-medium">{t('total_assets')}</span>
                     </div>
                     <div className="text-2xl font-bold text-white">{formatCurrency(totalAssets)}</div>
                     <div className="text-xs text-emerald-300/60 mt-1">{state.assets.length} items tracked</div>
@@ -155,7 +184,7 @@ const App: React.FC = () => {
                       <div className="p-2.5 bg-rose-500/20 rounded-xl">
                         <TrendingDown className="w-5 h-5 text-rose-400" />
                       </div>
-                      <span className="text-rose-200 text-sm font-medium">Total Liabilities</span>
+                      <span className="text-rose-200 text-sm font-medium">{t('total_liabilities')}</span>
                     </div>
                     <div className="text-2xl font-bold text-white">{formatCurrency(totalLiabilities)}</div>
                     <div className="text-xs text-rose-300/60 mt-1">{state.liabilities.length} items tracked</div>
@@ -167,7 +196,7 @@ const App: React.FC = () => {
                       <div className="p-2.5 bg-indigo-500/20 rounded-xl">
                         <span className="text-indigo-400 font-bold text-lg">₹</span>
                       </div>
-                      <span className="text-indigo-200 text-sm font-medium">Net Worth</span>
+                      <span className="text-indigo-200 text-sm font-medium">{t('net_worth')}</span>
                     </div>
                     <div className="text-2xl font-bold text-white">{formatCurrency(netWorth)}</div>
                     {monthChange && (
@@ -190,7 +219,7 @@ const App: React.FC = () => {
                   {/* Quick View of Assets */}
                   <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-white/15 animate-slide-up">
                     <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-                      <h3 className="text-lg font-semibold text-white">Top Assets</h3>
+                      <h3 className="text-lg font-semibold text-white">{t('top_assets')}</h3>
                       <button onClick={() => setActiveView('assets')} className="text-sm text-indigo-400 hover:text-white transition-colors">
                         Manage →
                       </button>
@@ -213,9 +242,9 @@ const App: React.FC = () => {
                         {state.assets.length === 0 && (
                           <div className="text-center py-8">
                             <Wallet className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-                            <p className="text-slate-500 text-sm">No assets tracked yet.</p>
+                            <p className="text-slate-500 text-sm">{t('no_assets_yet')}</p>
                             <button onClick={() => setActiveView('assets')} className="mt-3 text-sm text-indigo-400 hover:text-white transition-colors">
-                              + Add your first asset
+                              {t('add_first_asset')}
                             </button>
                           </div>
                         )}
@@ -245,9 +274,9 @@ const App: React.FC = () => {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-xl border-t border-white/10 px-2 py-1 safe-area-pb">
           <div className="flex justify-around items-center max-w-md mx-auto">
             {[
-              { view: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-              { view: 'assets' as const, label: 'Assets', icon: Wallet },
-              { view: 'history' as const, label: 'History', icon: History },
+              { view: 'dashboard' as const, label: t('nav_dashboard'), icon: LayoutDashboard },
+              { view: 'assets' as const, label: t('nav_assets'), icon: Wallet },
+              { view: 'history' as const, label: t('nav_history'), icon: History },
             ].map(({ view, label, icon: Icon }) => (
               <button
                 key={view}
@@ -270,7 +299,7 @@ const App: React.FC = () => {
       {/* Auto-Snapshot Toast */}
       {showToast && (
         <Toast
-          message="📸 Today's net worth snapshot saved"
+          message={t('snapshot_toast')}
           icon="snapshot"
           duration={5000}
           onClose={() => setShowToast(false)}
@@ -280,4 +309,10 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default function AppWrapper() {
+  return (
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
+  );
+}
