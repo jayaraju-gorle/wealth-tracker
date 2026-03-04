@@ -24,6 +24,18 @@ const ASSET_LABELS: Record<string, string> = {
 // Types that support smart pricing
 const SMART_TYPES: AssetType[] = ['MUTUAL_FUND', 'STOCK', 'GOLD'];
 
+// ─── Modern Input Styles ──────────────────────────────────────────────
+const INPUT_CLASS = 'w-full bg-white/[0.03] text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-emerald-400/40 focus:ring-1 focus:ring-emerald-400/20 outline-none transition-all placeholder:text-slate-600';
+const INPUT_CLASS_ROSE = 'w-full bg-white/[0.03] text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-rose-400/40 focus:ring-1 focus:ring-rose-400/20 outline-none transition-all placeholder:text-slate-600';
+const SELECT_CLASS = 'w-full bg-slate-800/60 text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-emerald-400/40 outline-none transition-all cursor-pointer';
+const SELECT_CLASS_ROSE = 'w-full bg-slate-800/60 text-white rounded-lg px-3 py-2.5 text-sm border border-white/[0.08] focus:border-rose-400/40 outline-none transition-all cursor-pointer';
+const LABEL_CLASS = 'text-[11px] text-slate-400 font-medium block mb-1.5';
+const OPTION_STYLE = { backgroundColor: '#1e293b', color: '#e2e8f0' };
+
+// ─── Indian Comma Formatting ─────────────────────────────────────────
+const formatIndian = (n: number): string => n ? n.toLocaleString('en-IN') : '';
+const parseIndian = (s: string): number => parseFloat(s.replace(/,/g, '')) || 0;
+
 // ─── MF Search Dropdown ──────────────────────────────────────────────
 const MFSearchInput: React.FC<{
   asset: Asset;
@@ -72,7 +84,7 @@ const MFSearchInput: React.FC<{
           onChange={handleChange}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder={asset.schemeCode ? asset.name : 'Search mutual fund...'}
-          className="w-full bg-slate-900/50 text-white text-sm border border-slate-600 rounded-lg pl-8 pr-3 py-1.5 focus:border-indigo-400 outline-none"
+          className={`${INPUT_CLASS} pl-8 pr-8`}
         />
         {loading && <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin absolute right-2 top-1/2 -translate-y-1/2" />}
       </div>
@@ -252,7 +264,7 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
           <div className="sm:col-span-12">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mt-2">
               <div className="sm:col-span-6">
-                <label className="text-xs text-slate-400 block mb-1">Search & Link Fund</label>
+                <label className={LABEL_CLASS}>Search & Link Fund</label>
                 <MFSearchInput asset={asset} onSelect={(r) => handleMFSelect(asset.id, r)} />
                 {asset.schemeCode && (
                   <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-500">
@@ -268,18 +280,18 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                 )}
               </div>
               <div className="sm:col-span-3">
-                <label className="text-xs text-slate-400 block mb-1">Units Held</label>
+                <label className={LABEL_CLASS}>Units Held</label>
                 <input
                   type="number"
                   step="0.001"
                   value={asset.units || ''}
                   onChange={(e) => updateAsset(asset.id, { units: parseFloat(e.target.value) || 0 })}
                   placeholder="e.g. 245.678"
-                  className="w-full bg-transparent text-white border-b border-slate-600 focus:border-indigo-400 outline-none pb-1"
+                  className={INPUT_CLASS}
                 />
               </div>
               <div className="sm:col-span-3">
-                <label className="text-xs text-slate-400 block mb-1">Computed Value</label>
+                <label className={LABEL_CLASS}>Computed Value</label>
                 <div className="text-emerald-400 font-bold font-mono pb-1">
                   {formatCurrency(asset.value)}
                 </div>
@@ -289,24 +301,24 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
             {/* SIP Tracking */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mt-3 pt-3 border-t border-white/5">
               <div className="sm:col-span-4">
-                <label className="text-xs text-slate-400 block mb-1">Monthly SIP (₹)</label>
+                <label className={LABEL_CLASS}>Monthly SIP (₹)</label>
                 <input
-                  type="number"
-                  value={asset.sipAmount || ''}
-                  onChange={(e) => updateAsset(asset.id, { sipAmount: parseFloat(e.target.value) || 0 })}
-                  placeholder="e.g. 5000"
-                  className="w-full bg-transparent text-white border-b border-slate-600 focus:border-violet-400 outline-none pb-1"
+                  type="text" inputMode="decimal"
+                  value={formatIndian(asset.sipAmount || 0)}
+                  onChange={(e) => updateAsset(asset.id, { sipAmount: parseIndian(e.target.value) })}
+                  placeholder="e.g. 5,000"
+                  className={INPUT_CLASS}
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-xs text-slate-400 block mb-1">SIP Day</label>
+                <label className={LABEL_CLASS}>SIP Day</label>
                 <select
                   value={asset.sipDay || 5}
                   onChange={(e) => updateAsset(asset.id, { sipDay: parseInt(e.target.value) })}
-                  className="w-full bg-slate-800/50 text-white rounded px-2 py-1 text-sm border border-slate-600 outline-none"
+                  className={SELECT_CLASS}
                 >
                   {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                    <option key={d} value={d}>{d}</option>
+                    <option key={d} value={d} style={OPTION_STYLE}>{d}</option>
                   ))}
                 </select>
               </div>
@@ -391,23 +403,23 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
         {isSmart && asset.type === 'STOCK' && (
           <div className="sm:col-span-12 grid grid-cols-1 sm:grid-cols-12 gap-4 mt-2">
             <div className="sm:col-span-4">
-              <label className="text-xs text-slate-400 block mb-1">Quantity</label>
+              <label className={LABEL_CLASS}>Quantity</label>
               <input
                 type="number"
                 value={asset.quantity || ''}
                 onChange={(e) => updateAsset(asset.id, { quantity: parseFloat(e.target.value) || 0 })}
                 placeholder="e.g. 50"
-                className="w-full bg-transparent text-white border-b border-slate-600 focus:border-amber-400 outline-none pb-1"
+                className={INPUT_CLASS}
               />
             </div>
             <div className="sm:col-span-4">
-              <label className="text-xs text-slate-400 block mb-1">Price per Share (₹)</label>
+              <label className={LABEL_CLASS}>Price per Share (₹)</label>
               <input
-                type="number"
-                value={asset.pricePerUnit || ''}
-                onChange={(e) => updateAsset(asset.id, { pricePerUnit: parseFloat(e.target.value) || 0 })}
-                placeholder="e.g. 2450"
-                className="w-full bg-transparent text-white border-b border-slate-600 focus:border-amber-400 outline-none pb-1"
+                type="text" inputMode="decimal"
+                value={formatIndian(asset.pricePerUnit || 0)}
+                onChange={(e) => updateAsset(asset.id, { pricePerUnit: parseIndian(e.target.value) })}
+                placeholder="e.g. 2,450"
+                className={INPUT_CLASS}
               />
             </div>
             <div className="sm:col-span-4">
@@ -423,24 +435,24 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
         {isSmart && asset.type === 'GOLD' && (
           <div className="sm:col-span-12 grid grid-cols-1 sm:grid-cols-12 gap-4 mt-2">
             <div className="sm:col-span-4">
-              <label className="text-xs text-slate-400 block mb-1">Weight (grams)</label>
+              <label className={LABEL_CLASS}>Weight (grams)</label>
               <input
                 type="number"
                 step="0.01"
                 value={asset.quantity || ''}
                 onChange={(e) => updateAsset(asset.id, { quantity: parseFloat(e.target.value) || 0 })}
                 placeholder="e.g. 10"
-                className="w-full bg-transparent text-white border-b border-slate-600 focus:border-yellow-400 outline-none pb-1"
+                className={INPUT_CLASS}
               />
             </div>
             <div className="sm:col-span-4">
-              <label className="text-xs text-slate-400 block mb-1">₹ per gram (market rate)</label>
+              <label className={LABEL_CLASS}>₹ per gram (market rate)</label>
               <input
-                type="number"
-                value={asset.pricePerUnit || ''}
-                onChange={(e) => updateAsset(asset.id, { pricePerUnit: parseFloat(e.target.value) || 0 })}
-                placeholder="e.g. 7500"
-                className="w-full bg-transparent text-white border-b border-slate-600 focus:border-yellow-400 outline-none pb-1"
+                type="text" inputMode="decimal"
+                value={formatIndian(asset.pricePerUnit || 0)}
+                onChange={(e) => updateAsset(asset.id, { pricePerUnit: parseIndian(e.target.value) })}
+                placeholder="e.g. 7,500"
+                className={INPUT_CLASS}
               />
             </div>
             <div className="sm:col-span-4">
@@ -539,20 +551,20 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                 </div>
               )}
               {data.assets.map(asset => (
-                <div key={asset.id} className="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-white/20 hover:bg-white/[0.07] transition-all group">
+                <div key={asset.id} className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.06] hover:border-white/15 hover:bg-white/[0.05] transition-all group" style={{ borderLeft: `3px solid ${ASSET_COLORS[asset.type] || '#64748b'}40` }}>
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                     <div className="sm:col-span-4">
-                      <label className="text-xs text-slate-400 block mb-1">Name</label>
+                      <label className={LABEL_CLASS}>Name</label>
                       <input
                         type="text" value={asset.name}
                         onChange={(e) => updateAsset(asset.id, { name: e.target.value })}
                         placeholder="e.g. HDFC Bank, Gold"
-                        className="w-full bg-transparent text-white border-b border-slate-600 focus:border-emerald-400 outline-none pb-1"
+                        className={INPUT_CLASS}
                       />
                       <SmartValueBadge asset={asset} />
                     </div>
                     <div className="sm:col-span-3">
-                      <label className="text-xs text-slate-400 block mb-1">Type</label>
+                      <label className={LABEL_CLASS}>Type</label>
                       <select
                         value={asset.type}
                         onChange={(e) => {
@@ -572,47 +584,47 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                             });
                           }
                         }}
-                        className="w-full bg-slate-800/50 text-white rounded px-2 py-1 text-sm border border-slate-600 outline-none"
+                        className={SELECT_CLASS}
                       >
-                        <option value="CASH">Cash / Savings</option>
-                        <option value="MUTUAL_FUND">Mutual Fund</option>
-                        <option value="STOCK">Stocks</option>
-                        <option value="GOLD">Gold (SGB/Physical)</option>
-                        <option value="FD">FD / RD</option>
-                        <option value="EPF_PPF">EPF / PPF / NPS</option>
-                        <option value="REAL_ESTATE">Real Estate</option>
-                        <option value="CRYPTO">Crypto</option>
-                        <option value="OTHER">Other</option>
+                        <option style={OPTION_STYLE} value="CASH">Cash / Savings</option>
+                        <option style={OPTION_STYLE} value="MUTUAL_FUND">Mutual Fund</option>
+                        <option style={OPTION_STYLE} value="STOCK">Stocks</option>
+                        <option style={OPTION_STYLE} value="GOLD">Gold (SGB/Physical)</option>
+                        <option style={OPTION_STYLE} value="FD">FD / RD</option>
+                        <option style={OPTION_STYLE} value="EPF_PPF">EPF / PPF / NPS</option>
+                        <option style={OPTION_STYLE} value="REAL_ESTATE">Real Estate</option>
+                        <option style={OPTION_STYLE} value="CRYPTO">Crypto</option>
+                        <option style={OPTION_STYLE} value="OTHER">Other</option>
                       </select>
                     </div>
                     {/* Show manual value input only when NOT in smart mode */}
                     {asset.valuationMode !== 'smart' && (
                       <div className="sm:col-span-2">
-                        <label className="text-xs text-slate-400 block mb-1">Value (₹)</label>
+                        <label className={LABEL_CLASS}>Value (₹)</label>
                         <input
-                          type="number" value={asset.value}
-                          onChange={(e) => updateAsset(asset.id, { value: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-transparent text-white border-b border-slate-600 focus:border-emerald-400 outline-none pb-1"
+                          type="text" inputMode="decimal" value={formatIndian(asset.value)}
+                          onChange={(e) => updateAsset(asset.id, { value: parseIndian(e.target.value) })}
+                          className={INPUT_CLASS}
                         />
                       </div>
                     )}
                     {asset.valuationMode === 'smart' && (
                       <div className="sm:col-span-2">
-                        <label className="text-xs text-slate-400 block mb-1">Value (₹)</label>
+                        <label className={LABEL_CLASS}>Value (₹)</label>
                         <div className="text-emerald-400 font-bold font-mono pb-1 text-sm">{formatCurrency(asset.value)}</div>
                       </div>
                     )}
                     <div className="sm:col-span-2">
-                      <label className="text-xs text-slate-400 block mb-1">Growth %</label>
+                      <label className={LABEL_CLASS}>Growth %</label>
                       <input
                         type="number" step="0.1"
                         value={(asset.growthRate * 100).toFixed(1)}
                         onChange={(e) => updateAsset(asset.id, { growthRate: (parseFloat(e.target.value) || 0) / 100 })}
-                        className="w-full bg-transparent text-white border-b border-slate-600 focus:border-emerald-400 outline-none pb-1"
+                        className={INPUT_CLASS}
                       />
                     </div>
-                    <div className="sm:col-span-1 flex justify-end">
-                      <button onClick={() => removeAsset(asset.id)} className="p-2 text-slate-500 hover:text-rose-400 transition-colors opacity-50 group-hover:opacity-100">
+                    <div className="sm:col-span-1 flex justify-end items-end">
+                      <button onClick={() => removeAsset(asset.id)} className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -623,7 +635,7 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                   </div>
                 </div>
               ))}
-              <button onClick={addAsset} className="w-full py-3 border border-dashed border-slate-600 rounded-xl text-slate-400 hover:text-white hover:border-emerald-400 hover:bg-emerald-400/5 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+              <button onClick={addAsset} className="w-full py-3.5 border-2 border-dashed border-white/10 rounded-2xl text-slate-500 hover:text-emerald-300 hover:border-emerald-400/30 hover:bg-emerald-400/5 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
                 <Plus className="w-4 h-4" /> Add Asset
               </button>
             </>
@@ -641,36 +653,36 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
                 </div>
               )}
               {data.liabilities.map(liab => (
-                <div key={liab.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center bg-white/5 p-4 rounded-xl border border-white/5 hover:border-white/20 hover:bg-white/[0.07] transition-all group">
+                <div key={liab.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center bg-white/[0.03] p-5 rounded-2xl border border-white/[0.06] hover:border-white/15 hover:bg-white/[0.05] transition-all group" style={{ borderLeft: '3px solid rgba(244,63,94,0.3)' }}>
                   <div className="sm:col-span-4">
-                    <label className="text-xs text-slate-400 block mb-1">Name</label>
-                    <input type="text" value={liab.name} onChange={(e) => updateLiability(liab.id, 'name', e.target.value)} placeholder="e.g. SBI Home Loan" className="w-full bg-transparent text-white border-b border-slate-600 focus:border-rose-400 outline-none pb-1" />
+                    <label className={LABEL_CLASS}>Name</label>
+                    <input type="text" value={liab.name} onChange={(e) => updateLiability(liab.id, 'name', e.target.value)} placeholder="e.g. SBI Home Loan" className={INPUT_CLASS_ROSE} />
                   </div>
                   <div className="sm:col-span-3">
-                    <label className="text-xs text-slate-400 block mb-1">Type</label>
-                    <select value={liab.type} onChange={(e) => updateLiability(liab.id, 'type', e.target.value as LiabilityType)} className="w-full bg-slate-800/50 text-white rounded px-2 py-1 text-sm border border-slate-600 outline-none">
-                      <option value="HOME_LOAN">Home Loan</option>
-                      <option value="CAR_LOAN">Car Loan</option>
-                      <option value="EDUCATION_LOAN">Education Loan</option>
-                      <option value="PERSONAL_LOAN">Personal Loan</option>
-                      <option value="CREDIT_CARD">Credit Card</option>
-                      <option value="OTHER">Other</option>
+                    <label className={LABEL_CLASS}>Type</label>
+                    <select value={liab.type} onChange={(e) => updateLiability(liab.id, 'type', e.target.value as LiabilityType)} className={SELECT_CLASS_ROSE}>
+                      <option style={OPTION_STYLE} value="HOME_LOAN">Home Loan</option>
+                      <option style={OPTION_STYLE} value="CAR_LOAN">Car Loan</option>
+                      <option style={OPTION_STYLE} value="EDUCATION_LOAN">Education Loan</option>
+                      <option style={OPTION_STYLE} value="PERSONAL_LOAN">Personal Loan</option>
+                      <option style={OPTION_STYLE} value="CREDIT_CARD">Credit Card</option>
+                      <option style={OPTION_STYLE} value="OTHER">Other</option>
                     </select>
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-xs text-slate-400 block mb-1">Balance (₹)</label>
-                    <input type="number" value={liab.value} onChange={(e) => updateLiability(liab.id, 'value', parseFloat(e.target.value) || 0)} className="w-full bg-transparent text-white border-b border-slate-600 focus:border-rose-400 outline-none pb-1" />
+                    <label className={LABEL_CLASS}>Balance (₹)</label>
+                    <input type="text" inputMode="decimal" value={formatIndian(liab.value)} onChange={(e) => updateLiability(liab.id, 'value', parseIndian(e.target.value))} className={INPUT_CLASS_ROSE} />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-xs text-slate-400 block mb-1">Interest %</label>
-                    <input type="number" step="0.1" value={(liab.interestRate * 100).toFixed(1)} onChange={(e) => updateLiability(liab.id, 'interestRate', (parseFloat(e.target.value) || 0) / 100)} className="w-full bg-transparent text-white border-b border-slate-600 focus:border-rose-400 outline-none pb-1" />
+                    <label className={LABEL_CLASS}>Interest %</label>
+                    <input type="number" step="0.1" value={(liab.interestRate * 100).toFixed(1)} onChange={(e) => updateLiability(liab.id, 'interestRate', (parseFloat(e.target.value) || 0) / 100)} className={INPUT_CLASS_ROSE} />
                   </div>
-                  <div className="sm:col-span-1 flex justify-end">
-                    <button onClick={() => removeLiability(liab.id)} className="p-2 text-slate-500 hover:text-rose-400 transition-colors opacity-50 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
+                  <div className="sm:col-span-1 flex justify-end items-end">
+                    <button onClick={() => removeLiability(liab.id)} className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               ))}
-              <button onClick={addLiability} className="w-full py-3 border border-dashed border-slate-600 rounded-xl text-slate-400 hover:text-white hover:border-rose-400 hover:bg-rose-400/5 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+              <button onClick={addLiability} className="w-full py-3.5 border-2 border-dashed border-white/10 rounded-2xl text-slate-500 hover:text-rose-300 hover:border-rose-400/30 hover:bg-rose-400/5 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
                 <Plus className="w-4 h-4" /> Add Liability
               </button>
             </>
@@ -686,7 +698,7 @@ export const AssetsLiabilities: React.FC<Props> = ({ data, onUpdate }) => {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-blue-300 font-bold">₹</span>
-              <input type="number" value={data.monthlyContribution} onChange={(e) => onUpdate({ monthlyContribution: parseFloat(e.target.value) || 0 })} className="bg-slate-900/50 text-white px-3 py-2 rounded-lg border border-blue-500/30 w-32 focus:border-blue-400 outline-none" />
+              <input type="text" inputMode="decimal" value={formatIndian(data.monthlyContribution)} onChange={(e) => onUpdate({ monthlyContribution: parseIndian(e.target.value) })} className="bg-white/[0.06] text-white px-3 py-2 rounded-lg border border-blue-500/20 w-36 focus:border-blue-400 outline-none transition-all text-right" />
             </div>
           </div>
         </div>
