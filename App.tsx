@@ -7,6 +7,7 @@ import { HistoryMachine } from './components/HistoryMachine';
 import { Projections } from './components/Projections';
 import { Milestones } from './components/Milestones';
 import { SyncManager } from './components/SyncManager';
+import { ChatBot } from './components/ChatBot';
 import { Toast } from './components/ui/Toast';
 import { formatCurrency, formatCompact } from './utils';
 import { LanguageProvider, useLanguage, LANGUAGE_OPTIONS } from './i18n/LanguageContext';
@@ -295,6 +296,9 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Chat Assistant */}
+      <ChatBot data={state} onUpdate={updateState} />
 
       {/* Auto-Snapshot Toast */}
       {showToast && (

@@ -77,6 +77,7 @@ export interface AppState {
   milestones: Milestone[];
   lastUpdated: number;
   themeColor: string;
+  sharedGeminiKey?: string;
 }
 
 export const INITIAL_STATE: AppState = {
