@@ -61,14 +61,16 @@ export const SyncManager: React.FC<Props> = ({ data, onUpdate, isSynced, syncSta
     }
   };
 
-  // SYNCED VIEW — Compact bar
-  if (isSynced && isFirebaseInitialized()) {
+  // SYNCED VIEW — Compact bar (or Connecting state)
+  if (data.familyId) {
+    const isReady = isSynced && isFirebaseInitialized();
+
     return (
       <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/20 backdrop-blur-md border border-teal-500/20 rounded-2xl px-5 py-4 animate-fade-in">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-emerald-500/20 text-emerald-400 relative flex-shrink-0">
-              <Check className="w-4 h-4" />
+            <div className={`p-2 rounded-full relative flex-shrink-0 ${isReady ? 'bg-emerald-500/20 text-emerald-400' : 'bg-teal-500/20 text-teal-400'}`}>
+              {!isReady ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {isMock() && (
                 <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5 border border-slate-900" title="Demo Mode">
                   <WifiOff className="w-2 h-2 text-white" />
@@ -76,33 +78,37 @@ export const SyncManager: React.FC<Props> = ({ data, onUpdate, isSynced, syncSta
               )}
             </div>
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-semibold text-white">{t('cloud_sync_active')}</span>
+              <span className="text-sm font-semibold text-white">
+                {!isReady ? "Connecting..." : t('cloud_sync_active')}
+              </span>
               {isMock() && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Demo</span>}
 
               {/* Status Badge */}
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/20 text-[10px] font-medium border border-white/5">
-                {syncStatus === 'syncing' && (
-                  <>
-                    <Loader2 className="w-2.5 h-2.5 animate-spin text-blue-400" />
-                    <span className="text-blue-200">{t('saving')}</span>
-                  </>
-                )}
-                {syncStatus === 'saved' && (
-                  <>
-                    <Cloud className="w-2.5 h-2.5 text-emerald-400" />
-                    <span className="text-emerald-200">{t('saved')}</span>
-                  </>
-                )}
-                {syncStatus === 'error' && (
-                  <>
-                    <AlertCircle className="w-2.5 h-2.5 text-rose-400" />
-                    <span className="text-rose-200">{t('error')}</span>
-                  </>
-                )}
-                {syncStatus === 'idle' && (
-                  <span className="text-slate-400">{t('idle')}</span>
-                )}
-              </div>
+              {isReady && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/20 text-[10px] font-medium border border-white/5">
+                  {syncStatus === 'syncing' && (
+                    <>
+                      <Loader2 className="w-2.5 h-2.5 animate-spin text-blue-400" />
+                      <span className="text-blue-200">{t('saving')}</span>
+                    </>
+                  )}
+                  {syncStatus === 'saved' && (
+                    <>
+                      <Cloud className="w-2.5 h-2.5 text-emerald-400" />
+                      <span className="text-emerald-200">{t('saved')}</span>
+                    </>
+                  )}
+                  {syncStatus === 'error' && (
+                    <>
+                      <AlertCircle className="w-2.5 h-2.5 text-rose-400" />
+                      <span className="text-rose-200">{t('error')}</span>
+                    </>
+                  )}
+                  {syncStatus === 'idle' && (
+                    <span className="text-slate-400">{t('idle')}</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

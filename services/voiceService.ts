@@ -80,7 +80,8 @@ export class GeminiVoiceSession {
     private processor: ScriptProcessorNode | null = null;
     private source: MediaStreamAudioSourceNode | null = null;
     private playbackContext: AudioContext | null = null;
-    private activeSource: AudioBufferSourceNode | null = null;
+    private scheduledSources: AudioBufferSourceNode[] = [];
+    private nextStartTime = 0;
     private audioQueue: Float32Array[] = [];
     private isPlayingAudio = false;
     private callbacks: VoiceSessionCallbacks;
@@ -160,12 +161,12 @@ RULES:
                     if (data.serverContent) {
                         if (data.serverContent.interrupted) {
                             this.audioQueue = [];
-                            if (this.activeSource) {
-                                try {
-                                    this.activeSource.stop();
-                                } catch (e) { /* ignore if already stopped */ }
-                                this.activeSource = null;
-                            }
+                            this.scheduledSources.forEach(s => {
+                                try { s.stop(); } catch (e) { }
+                            });
+                            this.scheduledSources = [];
+                            this.isPlayingAudio = false;
+                            this.nextStartTime = 0;
                             return;
                         }
 
@@ -261,10 +262,12 @@ RULES:
                     // 0.03 is a good threshold for speech vs background
                     if (rms > 0.03) {
                         this.audioQueue = [];
-                        if (this.activeSource) {
-                            try { this.activeSource.stop(); } catch (err) { /* ignore */ }
-                            this.activeSource = null;
-                        }
+                        this.scheduledSources.forEach(s => {
+                            try { s.stop(); } catch (e) { }
+                        });
+                        this.scheduledSources = [];
+                        this.isPlayingAudio = false;
+                        this.nextStartTime = 0;
                     }
                 }
 
@@ -297,12 +300,10 @@ RULES:
         }
     }
 
-    private async playAudioQueue(): Promise<void> {
-        if (this.isPlayingAudio) return;
-        this.isPlayingAudio = true;
-
+    private playAudioQueue(): void {
         if (!this.playbackContext) {
             this.playbackContext = new AudioContext({ sampleRate: 24000 });
+            this.nextStartTime = this.playbackContext.currentTime + 0.1;
         }
 
         while (this.audioQueue.length > 0) {
@@ -311,29 +312,29 @@ RULES:
             buffer.getChannelData(0).set(chunk);
 
             const source = this.playbackContext.createBufferSource();
-            this.activeSource = source;
             source.buffer = buffer;
             source.connect(this.playbackContext.destination);
-            source.start();
 
-            // Wait for this chunk to finish before playing next
-            await new Promise<void>(resolve => {
-                source.onended = () => {
-                    resolve();
-                };
-                // Fallback timeout
-                setTimeout(resolve, (chunk.length / 24000) * 1000 + 50);
-            });
-
-            // Clear activeSource if it hasn't been replaced by an interruption
-            if (this.activeSource === source) {
-                this.activeSource = null;
+            if (this.nextStartTime < this.playbackContext.currentTime) {
+                this.nextStartTime = this.playbackContext.currentTime + 0.05;
             }
-        }
 
-        this.isPlayingAudio = false;
-        if (this.status === 'speaking') {
-            this.setStatus('listening');
+            source.start(this.nextStartTime);
+            this.scheduledSources.push(source);
+            this.isPlayingAudio = true;
+            this.nextStartTime += buffer.duration;
+
+            source.onended = () => {
+                const idx = this.scheduledSources.indexOf(source);
+                if (idx > -1) this.scheduledSources.splice(idx, 1);
+
+                if (this.scheduledSources.length === 0) {
+                    this.isPlayingAudio = false;
+                    if (this.status === 'speaking') {
+                        this.setStatus('listening');
+                    }
+                }
+            };
         }
     }
 
@@ -360,10 +361,11 @@ RULES:
             this.playbackContext.close();
             this.playbackContext = null;
         }
-        if (this.activeSource) {
-            try { this.activeSource.stop(); } catch (e) { }
-            this.activeSource = null;
-        }
+        this.scheduledSources.forEach(s => {
+            try { s.stop(); } catch (e) { }
+        });
+        this.scheduledSources = [];
+        this.nextStartTime = 0;
         this.audioQueue = [];
         this.isPlayingAudio = false;
         // Close WebSocket
